@@ -1,0 +1,63 @@
+<Player>:
+    size_hint: None, None  
+    size: 25, 25
+    canvas:
+        Color:
+            rgb: 0, 1, 1   # cyan color for this widget only
+        Rectangle:
+            size: self.size
+            pos: self.pos
+
+<Enemy>:
+    size_hint: None, None  
+    size: 30, 30
+    canvas:
+        Color:
+            rgb: 1, 0, 0   # red enemy
+        Ellipse:
+            size: self.size
+            pos: self.pos
+
+<Attack>:
+    size_hint: None, None  
+    size: 15, 15
+    canvas:
+        Color:
+            rgb: 1, 1, 1   
+        Ellipse:
+            size: self.size
+            pos: self.pos
+
+
+            
+<Joystick>:
+    size_hint: None, None
+    size: 140, 140
+    canvas:
+        Color:
+            rgba: 1, 1, 1, 0.2
+        Ellipse:
+            pos: self.pos
+            size: self.size
+
+        Color:
+            rgba: 0, 1, 1, 0.8
+        Ellipse:
+            pos: self.center_x - 25, self.center_y - 25
+            size: 50, 50
+
+<AttackJoystick>:
+    size_hint: None, None
+    size: 140, 140
+    canvas:
+        Color:
+            rgba: 1, 1, 1, 0.2
+        Ellipse:
+            pos: self.pos
+            size: self.size
+
+        Color:
+            rgba: 0, 1, 1, 0.8
+        Ellipse:
+            pos: self.center_x - 25, self.center_y - 25
+            size: 50, 50
