@@ -80,4 +80,21 @@
             pos: self.pos
             size:
                 (self.width * (self.health / self.max_health), self.height)
+<PowerUp>:
+    size_hint: None, None
+    size: 24, 24
+
+    canvas:
+        Color:
+            rgba: root.color   # powerup color depends on type
+        Ellipse:
+            pos: self.pos
+            size: self.size
+
+    Label:
+        text: root.symbol     # icon text 
+        center: root.center
+        font_size: 16
+        color: 0, 0, 0, 1
+
 

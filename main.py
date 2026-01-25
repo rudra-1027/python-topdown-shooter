@@ -3,7 +3,7 @@ from kivy.uix.widget import Widget
 from kivy.uix.floatlayout import FloatLayout
 from kivy.core.window import Window
 from kivy.clock import Clock
-from kivy.properties import NumericProperty
+from kivy.properties import NumericProperty,ListProperty, StringProperty
 from kivy.uix.label import Label
 import math
 import random
@@ -40,11 +40,28 @@ class Game(FloatLayout):
         self.wave_count=0
         self.enemies_per_wave=0
         self.enemy=Clock.schedule_interval(self.spawnEnemy,5)
+        self.powerUp=Clock.schedule_interval(self.spawnPowerUp,5)
         Clock.schedule_interval(self.update,1/60)
 
-        
+    def spawnPowerUp(self,dt):
+        if Window.width <= 0 or Window.height <= 0:
+            return
+        powerUp=PowerUp()
+        powerUp.size=(24,24)
+        powerUp.color = [1, 0, 0, 1]
+        powerUp.symbol = "❤"
+        max_x=max(0,Window.width-powerUp.width)
+        max_y=max(0,Window.height-powerUp.height)
+        powerUp.pos=(random.uniform(0,max_x),random.uniform(0,max_y))
+        self.add_widget(powerUp)
+        Clock.schedule_once(lambda dt:self.despawnPowerUp(powerUp),8)
+
+    def despawnPowerUp(self,powerUp):
+        if powerUp.parent:
+            self.remove_widget(powerUp)
+
+
     def spawnAtttck(self,dt):
-        
         direction=self.AttackJoystick.vector
         if direction == (0,0):
             direction = (0,1)
@@ -61,6 +78,7 @@ class Game(FloatLayout):
         if direction == (0,0):
             direction = (0,1)
         Enemyattack=Attack(direction=direction)
+        Enemyattack.damage=enemy.damage
         Enemyattack.center=enemy.center
         self.add_widget(Enemyattack)
         self.Enemyattacks.append(Enemyattack)
@@ -149,6 +167,7 @@ class Game(FloatLayout):
         enemy.healthBar=HealthBar(max_health=enemy.max_health,health=enemy.health)
         enemy.speed=enemy.type[num]["speed"]
         enemy.damage=enemy.type[num]["damage"]
+        enemy.attackDelay=5
         max_x=max(0,Window.width-enemy.width)
         enemy.pos=(random.uniform(0,max_x),Window.height)
         self.add_widget(enemy)
@@ -231,7 +250,7 @@ class Game(FloatLayout):
                         enemy_y -=enemy_y*step
                 if (enemy.role=="ranged"):
                     if not hasattr(enemy,"isAttack"):
-                        enemy.isAttack=Clock.schedule_interval(lambda dt,e=enemy:self.spawnEnemyAttack(e,dt),1)
+                        enemy.isAttack=Clock.schedule_interval(lambda dt,e=enemy:self.spawnEnemyAttack(e,dt),enemy.attackDelay)
                     if(enemy_distance<enemy.minDist):
                         enemy.x-=enemy_x*enemy.speed
                         enemy.y-=enemy_y*enemy.speed
@@ -250,13 +269,16 @@ class Game(FloatLayout):
 
             #colloison with player
             if enemy.collide_widget(self.player):
-                if enemy.role=="melee":
+                if enemy.role=="melee" or enemy.role=="boss":
                     if not hasattr(enemy,"isAttack"):
                         enemy.isAttack=Clock.schedule_interval(lambda dt:self.enemyAttack(enemy,dt),enemy.attackDelay)
                         print(self.player.health)
                     
                 if enemy.role=="exploder":
                     self.player.health -=enemy.explode_damage
+                    if hasattr(enemy, "isAttack"):
+                        enemy.isAttack.cancel()
+                        del enemy.isAttack
                     self.remove_widget(enemy)
                     self.enemies.remove(enemy)
                 # self.remove_widget(enemy)
@@ -271,12 +293,12 @@ class Game(FloatLayout):
                 #         self.counter=0
 
             else:
-                if enemy.role == "melee" and  hasattr(enemy,"isAttack"):
+                if (enemy.role == "melee" or enemy.role=="boss") and  hasattr(enemy,"isAttack"):
                     enemy.isAttack.cancel()
                     del enemy.isAttack
             for attack in self.Enemyattacks:
                 if attack.collide_widget(self.player):
-                    self.player.health-=enemy.damage
+                    self.player.health-=attack.damage
                     print(self.player.health)
                     self.remove_widget(attack)
                     self.Enemyattacks.remove(attack)
@@ -372,6 +394,10 @@ class AttackJoystick(Widget):
 
             
 
+
+class PowerUp(Widget):
+    color=ListProperty([1,1,1,1])
+    symbol=StringProperty("")
 
 
 class Player(Widget):
