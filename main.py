@@ -31,17 +31,20 @@ class Game(FloatLayout):
         #enemy
         self.enemies=[]
         self.attacks=[]
+        self.Enemyattacks=[]
         self.counter=0
         self.bossWave=False
         self.bossAlive=0
-        self.maxBoss=2
+        self.maxBoss=1
         self.wave=""
         self.wave_count=0
+        self.enemies_per_wave=0
         self.enemy=Clock.schedule_interval(self.spawnEnemy,5)
         Clock.schedule_interval(self.update,1/60)
 
         
     def spawnAtttck(self,dt):
+        
         direction=self.AttackJoystick.vector
         if direction == (0,0):
             direction = (0,1)
@@ -49,18 +52,36 @@ class Game(FloatLayout):
         attack.pos=(self.player.x,self.player.y)
         self.add_widget(attack)
         self.attacks.append(attack)
-        
+    
+    def spawnEnemyAttack(self,enemy,dt):
+        print("attack called")
+        dx=self.player.center_x-enemy.center_x
+        dy=self.player.center_y-enemy.center_y
+        direction=(dx,dy)
+        if direction == (0,0):
+            direction = (0,1)
+        Enemyattack=Attack(direction=direction)
+        Enemyattack.center=enemy.center
+        self.add_widget(Enemyattack)
+        self.Enemyattacks.append(Enemyattack)
+
+    def wave_data(self):
+         self.wave_count+=1
+         self.show_wave_text(self.wave_count)
+         self.enemies_per_wave=4+self.wave_count*2
+         print(self.enemies_per_wave)
+         self.maxBoss=1+self.wave_count//2
 
     def spawnEnemy(self,dt):
         if Window.width <= 0 or Window.height <= 0:
             return
         if self.counter==0:
-            self.wave_count+=1
-            self.show_wave_text(self.wave_count)
+            self.wave_data()
         self.counter +=1
+        print(self.counter)
 
         #setting spawn for the boss wave
-        if(self.counter>5 and self.bossWave==False):
+        if(self.counter>self.enemies_per_wave and self.bossWave==False):
             self.bossWave = True 
             self.bossAlive=self.maxBoss
             for i in range(self.maxBoss):
@@ -68,27 +89,54 @@ class Game(FloatLayout):
             
 
         #setting spawn for the normal wave    
-        if(self.counter<5):
+        if(self.counter<self.enemies_per_wave):
             enemy=Enemy()
+            enemy.role="melee"
             enemy.boss=False
             enemy.type={ 1:{"size":30,"health":100,"speed":1,"damage":10},2:{"size":50,"health":150,"speed":0.5,"damage":20}}
             num=random.randint(1,2)
             print(num)
             print((enemy.type[num]))
+            enemy.attackDelay=5
             enemy.size = (enemy.type[num]["size"],enemy.type[num]["size"])
             enemy.health=enemy.type[num]["health"]
             enemy.speed=enemy.type[num]["speed"]
             enemy.damage=enemy.type[num]["damage"]
+
+
+            if(self.wave_count>0  and random.random()<0.25): #4
+                enemy.role="ranged"
+                enemy.minDist=150
+                enemy.maxDist=220
+
+            
+            if(self.wave_count>2 and random.random()<0.15): #6
+                enemy.attackDelay=2
+                enemy.role="exploder"
+                enemy.explode_radius=80
+                enemy.explode_damage=enemy.damage*2
+            
+            if(self.wave_count>=2 and random.random()<0.1): #5
+                enemy.role="elite"
+                enemy.health *= 2
+                enemy.damage *=1.5
+                enemy.speed *=1.2 
+            
             max_x=max(0,Window.width-enemy.width)
             enemy.pos=(random.uniform(0,max_x),Window.height)
             self.add_widget(enemy)
+            print(enemy.role)
             self.enemies.append(enemy)
     
+    def enemyAttack(self,enemy,dt):
+        self.player.health -=enemy.damage
+
 
     def spawnBoss(self):
         if Window.width <= 0 or Window.height <= 0:
             return
         enemy=Enemy()
+        enemy.role="boss"
         enemy.boss=True
         enemy.type={ 1:{"name":"boss","size":70,"health":200,"speed":1,"damage":25},2:{"name":"boss","size":70,"health":200,"speed":0.5,"damage":25}}
         num=random.randint(1,2)
@@ -149,6 +197,14 @@ class Game(FloatLayout):
             if attack.y > Window.height:
                 self.remove_widget(attack)
                 self.attacks.remove(attack)
+
+        for attack in self.Enemyattacks:
+            attack.x +=attack.vx*attack.speed
+            attack.y +=attack.vy*attack.speed
+            # if attack.y > Window.height :
+            #     self.remove_widget(attack)
+            #     self.Enemyattacks.remove(attack)
+            
        
          #enemy
         for enemy in self.enemies:
@@ -159,30 +215,64 @@ class Game(FloatLayout):
             if enemy_distance > 0:
                 enemy_x /=enemy_distance  #used for normalizing from -1 to 1 using sin and cos 
                 enemy_y /=enemy_distance
-                enemy.x +=enemy_x*enemy.speed
-                enemy.y +=enemy_y*enemy.speed
+                stop_dist=40
+                if(enemy.role !="ranged"):
+                    if enemy_distance > stop_dist:
+                        enemy.x +=enemy_x*enemy.speed
+                        enemy.y +=enemy_y*enemy.speed
+                    else:
+                        enemy.x -=enemy_x*enemy.speed
+                        enemy.y -=enemy_y*enemy.speed
+                if (enemy.role=="ranged"):
+                    if not hasattr(enemy,"isAttack"):
+                        enemy.isAttack=Clock.schedule_interval(lambda dt,e=enemy:self.spawnEnemyAttack(e,dt),1)
+                    if(enemy_distance<enemy.minDist):
+                        enemy.x-=enemy_x*enemy.speed
+                        enemy.y-=enemy_y*enemy.speed
+                    if(enemy_distance>enemy.maxDist):
+                        enemy.x +=enemy_x*enemy.speed
+                        enemy.y +=enemy_y*enemy.speed
+
             if hasattr(enemy, "healthBar"):
                 enemy.healthBar.health = enemy.health
                 enemy.healthBar.pos = (
                     enemy.center_x - enemy.healthBar.width / 2,
                     enemy.top + 5
                 )
+            
 
 
             #colloison with player
             if enemy.collide_widget(self.player):
-                self.player.health -=enemy.damage
-                print(self.player.health)
-                self.remove_widget(enemy)
-                if hasattr(enemy,"healthBar"):
-                    self.remove_widget(enemy.healthBar)
-                self.enemies.remove(enemy)     
-                if(self.bossWave==True and enemy.boss==True):
-                    self.bossAlive -=1
-                    print(f"the bosees alive are {self.bossAlive}")  
-                    if self.bossAlive==0:
-                        self.bossWave=False
-                        self.counter=0
+                if enemy.role=="melee":
+                    if not hasattr(enemy,"isAttack"):
+                        enemy.isAttack=Clock.schedule_interval(lambda dt:self.enemyAttack(enemy,dt),enemy.attackDelay)
+                        print(self.player.health)
+                    
+                if enemy.role=="exploder":
+                    self.player.health -=enemy.explode_damage
+                    self.remove_widget(enemy)
+                    self.enemies.remove(enemy)
+                # self.remove_widget(enemy)
+                # if hasattr(enemy,"healthBar"):
+                #     self.remove_widget(enemy.healthBar)
+                # self.enemies.remove(enemy)     
+                # if(self.bossWave==True and enemy.boss==True):
+                #     self.bossAlive -=1
+                #     print(f"the bosees alive are {self.bossAlive}")  
+                #     if self.bossAlive==0:
+                #         self.bossWave=False
+                #         self.counter=0
+
+            else:
+                if enemy.role == "melee" and  hasattr(enemy,"isAttack"):
+                    enemy.isAttack.cancel()
+                    del enemy.isAttack
+            for attack in self.Enemyattacks:
+                if attack.collide_widget(self.player):
+                    self.player.health-=enemy.damage
+                    self.remove_widget(attack)
+                    self.Enemyattacks.remove(attack)
 
             #colloison with attack
             for attack in self.attacks:
@@ -192,6 +282,9 @@ class Game(FloatLayout):
                         self.attacks.remove(attack)
                         print(enemy.health)
                         if enemy.health <=0:
+                            if hasattr(enemy, "isAttack"):
+                                enemy.isAttack.cancel()
+                                del enemy.isAttack
                             self.remove_widget(enemy)
                             if hasattr(enemy,"healthBar"):
                                 self.remove_widget(enemy.healthBar)
@@ -287,10 +380,11 @@ class HealthBar(Widget):
 class Attack(Widget):
     def __init__(self,direction=(0,1),**kwargs):
         super().__init__(**kwargs)
+        self.size = (12, 12)
         dx,dy=direction
         length=math.sqrt(dx**2+dy**2)
         if length ==0:
-            self.vx,self.y=0,1
+            self.vx,self.vy=0,1
         else:
             self.vx =dx/length
             self.vy =dy/length
