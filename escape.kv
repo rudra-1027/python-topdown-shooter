@@ -61,3 +61,23 @@
         Ellipse:
             pos: self.center_x - 25, self.center_y - 25
             size: 50, 50
+<HealthBar>:
+    size_hint: None, None
+    size: 80, 8
+
+    canvas:
+        # background
+        Color:
+            rgba: 0.2, 0.2, 0.2, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+        # health bar
+        Color:
+            rgba: 1, 0, 0, 1
+        Rectangle:
+            pos: self.pos
+            size:
+                (self.width * (self.health / self.max_health), self.height)
+
