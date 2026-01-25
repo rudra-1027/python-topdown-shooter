@@ -209,20 +209,26 @@ class Game(FloatLayout):
          #enemy
         for enemy in self.enemies:
             #movement
-            enemy_x=self.player.x-enemy.x
-            enemy_y=self.player.y-enemy.y
-            enemy_distance=math.sqrt(enemy_x**2+enemy_y**2)
+            px,py=self.player.center
+            ex,ey=enemy.center
+            # enemy_x=self.player.x-enemy.x
+            # enemy_y=self.player.y-enemy.y
+            dx=px-ex
+            dy=py-ey
+            enemy_distance=math.sqrt(dx**2+dy**2)
             if enemy_distance > 0:
-                enemy_x /=enemy_distance  #used for normalizing from -1 to 1 using sin and cos 
-                enemy_y /=enemy_distance
-                stop_dist=40
+                enemy_x =dx/(enemy_distance+0.0001)  #used for normalizing from -1 to 1 using sin and cos 
+                enemy_y =dy/(enemy_distance+0.0001) 
+                safe_dist=(enemy.width+self.player.width)/2
                 if(enemy.role !="ranged"):
-                    if enemy_distance > stop_dist:
-                        enemy.x +=enemy_x*enemy.speed
-                        enemy.y +=enemy_y*enemy.speed
-                    else:
-                        enemy.x -=enemy_x*enemy.speed
-                        enemy.y -=enemy_y*enemy.speed
+                    if enemy_distance>safe_dist:
+                        step = min(enemy.speed, enemy_distance - safe_dist)
+                        enemy.x +=enemy_x*step
+                        enemy.y +=enemy_y*step
+                    elif enemy_distance<safe_dist:
+                        step=min(enemy.speed,safe_dist-enemy_distance)
+                        enemy.x -=enemy_x*step
+                        enemy_y -=enemy_y*step
                 if (enemy.role=="ranged"):
                     if not hasattr(enemy,"isAttack"):
                         enemy.isAttack=Clock.schedule_interval(lambda dt,e=enemy:self.spawnEnemyAttack(e,dt),1)
@@ -271,6 +277,7 @@ class Game(FloatLayout):
             for attack in self.Enemyattacks:
                 if attack.collide_widget(self.player):
                     self.player.health-=enemy.damage
+                    print(self.player.health)
                     self.remove_widget(attack)
                     self.Enemyattacks.remove(attack)
 
