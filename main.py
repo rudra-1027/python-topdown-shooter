@@ -5,6 +5,8 @@ from kivy.core.window import Window
 from kivy.clock import Clock
 from kivy.properties import NumericProperty,ListProperty, StringProperty
 from kivy.uix.label import Label
+from kivy.uix.button import Button
+from kivy.uix.relativelayout import RelativeLayout
 import math
 import random
 
@@ -14,6 +16,10 @@ import random
 class Game(FloatLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.game_paused=False
+        self.ui_layer=GameUI()
+        self.add_widget(self.ui_layer)
+
         self.player=Player()
         self.joystick=JoyStick(size_hint=(None, None),size=(120, 120),pos_hint={"x": 0.05, "y": 0.05})
         self.AttackJoystick=AttackJoystick(size_hint=(None, None),size=(120, 120),pos_hint={"right": 0.95, "y": 0.05})
@@ -22,13 +28,30 @@ class Game(FloatLayout):
         self.add_widget(self.joystick)
         self.add_widget(self.player)
         self.player.center = self.center
-        self.player.health=100
-        self.player.max_health=100
         self.player.healthBar=HealthBar(max_health=self.player.max_health,health=self.player.health, size_hint=(None, None),size=(200, 20),pos_hint={"x": 0.02, "top": 0.98})
         self.add_widget(self.player.healthBar)
-        self.player.score=0
-       
+        self.powerUps=[]
+        self.powerUp_type={ 1:{"type":"health","size":24,"color":[0,1,0,1],"symbol":"+"},
+                            2:{"type":"sheild","size":24,"color":[0,0.6,1,1],"symbol":"S"},
+                            3:{"type": "damage_booster", "size": 24, "color": [1,0,0,1], "symbol": "D"},
+                            4:{"type": "nuke", "size": 24, "color": [1,0.5,0,1], "symbol": "N"},
+                            5:{"type": "freeze", "size": 24, "color": [0.5,0.8,1,1], "symbol": "F"}}
+        self.upgrades = [
+                            {"name": "Damage +10", "type": "damage", "value": 10},
+                            {"name": "Regen +1", "type": "regen", "value": 1},
+                            {"name": "Max Health +20", "type": "max_health", "value": 20},
+                            {"name": "Heal 25", "type": "heal", "value": 25},
+
+                            {"name": "Gun: Shotgun", "type": "gun", "value": "Shotgun", "min_wave": 2},
+                            {"name": "Gun: machine", "type": "gun", "value": "machine", "min_wave": 4},
+                            {"name": "Gun: sniper", "type": "gun", "value": "sniper", "min_wave": 6},
+
+                            {"name": "Bullet +1", "type": "bullet_count", "value": 1}
+                        ]
+        
+        self.game_paused = False
         #enemy
+
         self.enemies=[]
         self.attacks=[]
         self.Enemyattacks=[]
@@ -39,26 +62,86 @@ class Game(FloatLayout):
         self.wave=""
         self.wave_count=0
         self.enemies_per_wave=0
+       
         self.enemy=Clock.schedule_interval(self.spawnEnemy,5)
         self.powerUp=Clock.schedule_interval(self.spawnPowerUp,5)
         Clock.schedule_interval(self.update,1/60)
 
+    def show_menu(self):
+        self.game_paused=True
+        choices=random.sample(self.upgrades,3)
+        self.upgrade_panel=UpgradePanel()
+        box=self.upgrade_panel.ids.upgrade_box
+        for upgrade in choices:
+            btn=Button(text=upgrade["name"],size_hint_y=None, height=60 ) 
+            
+            def onclick(instance,up=upgrade):
+                self.apply_upgrade(up)
+                self.ui_layer.remove_widget(self.upgrade_panel)
+                self.game_paused=False
+            btn.bind(on_press=onclick)
+            box.add_widget(btn)
+
+        self.ui_layer.add_widget(self.upgrade_panel)
+
+    def apply_upgrade(self,upgrade):
+        type=upgrade["type"]
+        value=upgrade["value"]
+        if(type=="max_health"):
+            self.player.max_health +=value
+            self.player.healthBar.max_health +=value
+            self.player.health +=value
+            print(self.player.healthBar.max_health)
+        elif(type=="damage"):
+            self.player.damage +=value
+        elif(type=="heal"):
+            self.player.health =min(self.player.max_health,self.player.health + value)
+            
+    def apply_powerUp(self,power):
+        if(power.type=="health"):
+            self.player.health +=10
+        elif(power.type=="sheild"):
+            self.player.sheild=True
+            Clock.schedule_once(lambda dt: setattr(self.player,"sheild",False),3)
+        elif(power.type=="freeze"):
+            self.player.freeze=True
+            self.player.freeze_multiplier=0.3
+            Clock.schedule_once(lambda dt:setattr(self.player,"freeze_multiplier",1),4)
+            Clock.schedule_once(lambda dt:setattr(self.player,"freeze",False),4)
+        elif(power.type=="damage_booster"):
+            self.player.damage_booster=True
+            self.player.damage_multiplier=1.5
+            Clock.schedule_once(lambda dt:setattr(self.player,"damage_multiplier",1),5)
+            Clock.schedule_once(lambda dt:setattr(self.player,"damage_booster",False),5)
+        elif(power.type=="nuke"):
+            for enemy in self.enemies[:]:
+                enemy.health -=50
+                self.enemyDeath(enemy)
+
+            
+
+
+
     def spawnPowerUp(self,dt):
         if Window.width <= 0 or Window.height <= 0:
             return
+        num=random.randint(1,5)
         powerUp=PowerUp()
-        powerUp.size=(24,24)
-        powerUp.color = [1, 0, 0, 1]
-        powerUp.symbol = "❤"
+        powerUp.type=self.powerUp_type[num]["type"]
+        powerUp.size=(self.powerUp_type[num]["size"],self.powerUp_type[num]["size"])
+        powerUp.color = self.powerUp_type[num]["color"]
+        powerUp.symbol = self.powerUp_type[num]["symbol"]
         max_x=max(0,Window.width-powerUp.width)
         max_y=max(0,Window.height-powerUp.height)
         powerUp.pos=(random.uniform(0,max_x),random.uniform(0,max_y))
         self.add_widget(powerUp)
+        self.powerUps.append(powerUp)
         Clock.schedule_once(lambda dt:self.despawnPowerUp(powerUp),8)
 
     def despawnPowerUp(self,powerUp):
         if powerUp.parent:
             self.remove_widget(powerUp)
+            self.powerUps.remove(powerUp)
 
 
     def spawnAtttck(self,dt):
@@ -66,6 +149,7 @@ class Game(FloatLayout):
         if direction == (0,0):
             direction = (0,1)
         attack=Attack(direction=direction)
+        attack.damage=self.player.damage
         attack.pos=(self.player.x,self.player.y)
         self.add_widget(attack)
         self.attacks.append(attack)
@@ -91,9 +175,12 @@ class Game(FloatLayout):
          self.maxBoss=1+self.wave_count//2
 
     def spawnEnemy(self,dt):
+        if self.game_paused==True:
+            return
         if Window.width <= 0 or Window.height <= 0:
             return
-        if self.counter==0:
+        if self.counter==0 and len(self.enemies)==0 :
+            self.show_menu()
             self.wave_data()
         self.counter +=1
         print(self.counter)
@@ -146,8 +233,28 @@ class Game(FloatLayout):
             print(enemy.role)
             self.enemies.append(enemy)
     
+    def enemyDeath(self,enemy):
+        if enemy.health <=0:
+            if hasattr(enemy, "isAttack"):
+                enemy.isAttack.cancel()
+                del enemy.isAttack
+            self.remove_widget(enemy)
+            if hasattr(enemy,"healthBar"):
+                self.remove_widget(enemy.healthBar)
+            self.enemies.remove(enemy)
+            if (self.bossWave==False):
+                self.player.score +=1
+            if(self.bossWave==True and enemy.boss==True):
+                self.bossAlive -=1
+                print(f"the bosees alive are {self.bossAlive}")
+                self.player.score +=10
+            if self.bossAlive==0 and len(self.enemies)==0:
+                self.bossWave=False
+                self.counter=0
+    
     def enemyAttack(self,enemy,dt):
-        self.player.health -=enemy.damage
+        if not self.player.sheild:
+            self.player.health -=enemy.damage
 
 
     def spawnBoss(self):
@@ -191,6 +298,8 @@ class Game(FloatLayout):
 
 
     def update(self,dt):
+        if self.game_paused==True:
+            return
         #player
             #movement
         vx,vy=self.joystick.vector
@@ -207,17 +316,23 @@ class Game(FloatLayout):
         if self.player.health <= 0:
             print("Game Over!!")
 
+        for powers in self.powerUps:
+            if powers.collide_widget(self.player):
+                self.remove_widget(powers)
+                self.powerUps.remove(powers)
+                self.apply_powerUp(powers)
+               
            
 
             #attack
-        for attack in self.attacks:
+        for attack in self.attacks[:]:
             attack.x +=attack.vx*attack.speed
             attack.y +=attack.vy*attack.speed
             if attack.y > Window.height:
                 self.remove_widget(attack)
                 self.attacks.remove(attack)
 
-        for attack in self.Enemyattacks:
+        for attack in self.Enemyattacks[:]:
             attack.x +=attack.vx*attack.speed
             attack.y +=attack.vy*attack.speed
             # if attack.y > Window.height :
@@ -226,7 +341,7 @@ class Game(FloatLayout):
             
        
          #enemy
-        for enemy in self.enemies:
+        for enemy in self.enemies[:]:
             #movement
             px,py=self.player.center
             ex,ey=enemy.center
@@ -239,13 +354,14 @@ class Game(FloatLayout):
                 enemy_x =dx/(enemy_distance+0.0001)  #used for normalizing from -1 to 1 using sin and cos 
                 enemy_y =dy/(enemy_distance+0.0001) 
                 safe_dist=(enemy.width+self.player.width)/2
+                effective_speed=enemy.speed*self.player.freeze_multiplier
                 if(enemy.role !="ranged"):
                     if enemy_distance>safe_dist:
-                        step = min(enemy.speed, enemy_distance - safe_dist)
+                        step = min(effective_speed, enemy_distance - safe_dist)
                         enemy.x +=enemy_x*step
                         enemy.y +=enemy_y*step
                     elif enemy_distance<safe_dist:
-                        step=min(enemy.speed,safe_dist-enemy_distance)
+                        step=min(effective_speed,safe_dist-enemy_distance)
                         enemy.x -=enemy_x*step
                         enemy_y -=enemy_y*step
                 if (enemy.role=="ranged"):
@@ -281,22 +397,12 @@ class Game(FloatLayout):
                         del enemy.isAttack
                     self.remove_widget(enemy)
                     self.enemies.remove(enemy)
-                # self.remove_widget(enemy)
-                # if hasattr(enemy,"healthBar"):
-                #     self.remove_widget(enemy.healthBar)
-                # self.enemies.remove(enemy)     
-                # if(self.bossWave==True and enemy.boss==True):
-                #     self.bossAlive -=1
-                #     print(f"the bosees alive are {self.bossAlive}")  
-                #     if self.bossAlive==0:
-                #         self.bossWave=False
-                #         self.counter=0
 
             else:
                 if (enemy.role == "melee" or enemy.role=="boss") and  hasattr(enemy,"isAttack"):
                     enemy.isAttack.cancel()
                     del enemy.isAttack
-            for attack in self.Enemyattacks:
+            for attack in self.Enemyattacks[:]:
                 if attack.collide_widget(self.player):
                     self.player.health-=attack.damage
                     print(self.player.health)
@@ -304,29 +410,15 @@ class Game(FloatLayout):
                     self.Enemyattacks.remove(attack)
 
             #colloison with attack
-            for attack in self.attacks:
+            for attack in self.attacks[:]:
                 if enemy.collide_widget(attack):
-                        enemy.health -=attack.damage
+                        enemy.health -=attack.damage*self.player.damage_multiplier
                         self.remove_widget(attack)
                         self.attacks.remove(attack)
                         print(enemy.health)
-                        if enemy.health <=0:
-                            if hasattr(enemy, "isAttack"):
-                                enemy.isAttack.cancel()
-                                del enemy.isAttack
-                            self.remove_widget(enemy)
-                            if hasattr(enemy,"healthBar"):
-                                self.remove_widget(enemy.healthBar)
-                            self.enemies.remove(enemy)
-                            if (self.bossWave==False):
-                                    self.player.score +=1
-                            if(self.bossWave==True and enemy.boss==True):
-                                    self.bossAlive -=1
-                                    print(f"the bosees alive are {self.bossAlive}")
-                                    self.player.score +=10
-                                    if self.bossAlive==0:
-                                        self.bossWave=False
-                                        self.counter=0
+                        if enemy.health<0:
+                            self.enemyDeath(enemy)
+                        
 
                 
 
@@ -401,7 +493,15 @@ class PowerUp(Widget):
 
 
 class Player(Widget):
-    pass
+    def __init__(self,**kwargs):
+        super().__init__(**kwargs)
+        self.damage=25
+        self.health=100
+        self.max_health=100
+        self.sheild=False
+        self.damage_multiplier=1
+        self.score=0
+        self.freeze_multiplier=1
 
 class Enemy(Widget):
     pass
@@ -423,6 +523,12 @@ class Attack(Widget):
             self.vy =dy/length
         self.speed=7
         self.damage=50
+
+class GameUI(RelativeLayout):
+    pass
+
+class UpgradePanel(RelativeLayout):
+    pass
 
 
 class Escape(App):

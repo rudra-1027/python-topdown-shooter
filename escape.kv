@@ -97,4 +97,33 @@
         font_size: 16
         color: 0, 0, 0, 1
 
+<GameUI>:
+    size_hint: 1,1
+
+<UpgradePanel>:
+    size_hint: 1,1
+    canvas.before:
+        Color:
+            rgba: 0,0,0,0.7
+        Rectangle:
+            size: self.size
+            pos: self.pos
+
+    BoxLayout:
+        orientation: "vertical"
+        spacing: 20
+        size_hint: None,None
+        size: 320,350
+        pos_hint: {"center_x":0.5,"center_y":0.5}
+
+        Label:
+            text: "Choose Upgrade"
+            font_size: 28
+            size_hint_y: None
+            height: 60
+
+        BoxLayout:
+            id: upgrade_box
+            orientation: "vertical"
+            spacing: 10
 
