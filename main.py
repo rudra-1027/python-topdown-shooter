@@ -30,28 +30,30 @@ class Game(FloatLayout):
         self.player.center = self.center
         self.player.healthBar=HealthBar(max_health=self.player.max_health,health=self.player.health, size_hint=(None, None),size=(200, 20),pos_hint={"x": 0.02, "top": 0.98})
         self.add_widget(self.player.healthBar)
+        self.player.gun=Gun(owner=self.player)
+        self.add_widget(self.player.gun)
+        self.player.guns={"basic":{"damage": 25,"range": 100,"magazine": 30,"ammo":30,"rate": 0.25,"reload": 1.5}}
         self.powerUps=[]
         self.powerUp_type={ 1:{"type":"health","size":24,"color":[0,1,0,1],"symbol":"+"},
                             2:{"type":"sheild","size":24,"color":[0,0.6,1,1],"symbol":"S"},
                             3:{"type": "damage_booster", "size": 24, "color": [1,0,0,1], "symbol": "D"},
                             4:{"type": "nuke", "size": 24, "color": [1,0.5,0,1], "symbol": "N"},
                             5:{"type": "freeze", "size": 24, "color": [0.5,0.8,1,1], "symbol": "F"}}
+        self.gunList=[      
+                            {"name": "Gun: Shotgun", "type": "shotgun", "value": "", "min_wave": 1},
+                            {"name": "Gun: machine", "type": "machine", "value":"", "min_wave": 2},
+                            {"name": "Gun: sniper", "type": "sniper", "value": "", "min_wave": 2},
+                     ]
         self.upgrades = [
                             {"name": "Damage +10", "type": "damage", "value": 10},
                             {"name": "Regen +1", "type": "regen", "value": 1},
                             {"name": "Max Health +20", "type": "max_health", "value": 20},
                             {"name": "Heal 25", "type": "heal", "value": 25},
-
-                            {"name": "Gun: Shotgun", "type": "gun", "value": "Shotgun", "min_wave": 2},
-                            {"name": "Gun: machine", "type": "gun", "value": "machine", "min_wave": 4},
-                            {"name": "Gun: sniper", "type": "gun", "value": "sniper", "min_wave": 6},
-
                             {"name": "Bullet +1", "type": "bullet_count", "value": 1}
                         ]
         
         self.game_paused = False
         #enemy
-
         self.enemies=[]
         self.attacks=[]
         self.Enemyattacks=[]
@@ -65,10 +67,21 @@ class Game(FloatLayout):
        
         self.enemy=Clock.schedule_interval(self.spawnEnemy,5)
         self.powerUp=Clock.schedule_interval(self.spawnPowerUp,5)
+        Clock.schedule_interval(self.playerRegen,5)
         Clock.schedule_interval(self.update,1/60)
+    def playerRegen(self,dt):
+        if self.player.health<self.player.max_health:
+            self.player.health +=self.player.regen
 
     def show_menu(self):
         self.game_paused=True
+        for gun in self.gunList:
+            if self.wave_count==gun["min_wave"]:
+                self.upgrades.append(gun)
+                self.player.guns[gun["type"]]=self.player.gun.gunData[gun["type"]]
+                print(self.player.guns)
+        
+        
         choices=random.sample(self.upgrades,3)
         self.upgrade_panel=UpgradePanel()
         box=self.upgrade_panel.ids.upgrade_box
@@ -83,6 +96,17 @@ class Game(FloatLayout):
             box.add_widget(btn)
 
         self.ui_layer.add_widget(self.upgrade_panel)
+    def changeWeapeon(self):
+        availableGuns=list(self.player.guns.keys())
+        index=availableGuns.index(self.player.gun.current)
+        gunindex=(index+1)%len(availableGuns)
+        self.player.gun.current=availableGuns[gunindex]
+        print(f"changed to {self.player.gun.current}")
+        self.player.damage=self.player.guns[self.player.gun.current]["damage"]
+        self.ui_layer.update()
+        
+
+
 
     def apply_upgrade(self,upgrade):
         type=upgrade["type"]
@@ -96,6 +120,9 @@ class Game(FloatLayout):
             self.player.damage +=value
         elif(type=="heal"):
             self.player.health =min(self.player.max_health,self.player.health + value)
+        elif(type=="regen"):
+            self.player.regen+=1
+
             
     def apply_powerUp(self,power):
         if(power.type=="health"):
@@ -145,12 +172,21 @@ class Game(FloatLayout):
 
 
     def spawnAtttck(self,dt):
+        if self.player.gun.reloading:
+            return
+        
+        if self.player.guns[self.player.gun.current]["ammo"]<=0:
+            return
+        self.player.guns[self.player.gun.current]["ammo"]-=1
+        print(self.player.guns[self.player.gun.current]["ammo"])
+        
+        self.ui_layer.update()
         direction=self.AttackJoystick.vector
         if direction == (0,0):
             direction = (0,1)
         attack=Attack(direction=direction)
         attack.damage=self.player.damage
-        attack.pos=(self.player.x,self.player.y)
+        attack.center=self.player.gun.center
         self.add_widget(attack)
         self.attacks.append(attack)
     
@@ -186,7 +222,7 @@ class Game(FloatLayout):
         print(self.counter)
 
         #setting spawn for the boss wave
-        if(self.counter>self.enemies_per_wave and self.bossWave==False):
+        if(self.counter==self.enemies_per_wave and self.bossWave==False):
             self.bossWave = True 
             self.bossAlive=self.maxBoss
             for i in range(self.maxBoss):
@@ -248,7 +284,7 @@ class Game(FloatLayout):
                 self.bossAlive -=1
                 print(f"the bosees alive are {self.bossAlive}")
                 self.player.score +=10
-            if self.bossAlive==0 and len(self.enemies)==0:
+            if self.counter >= self.enemies_per_wave and self.bossAlive==0 and len(self.enemies)==0:
                 self.bossWave=False
                 self.counter=0
     
@@ -300,6 +336,19 @@ class Game(FloatLayout):
     def update(self,dt):
         if self.game_paused==True:
             return
+        
+        
+
+        if self.player.guns[self.player.gun.current]["ammo"]<=0 and not self.player.gun.reloading:
+            print("entered")
+            if hasattr(self.player, "attack"):
+                self.player.attack.cancel()
+                del self.player.attack
+            if hasattr(self, "AttackJoystick"):
+                self.AttackJoystick.shooting = False
+            self.player.gun.startReload()
+            
+
         #player
             #movement
         vx,vy=self.joystick.vector
@@ -310,6 +359,7 @@ class Game(FloatLayout):
 
         self.player.x=max(0,min(self.player.x,Window.width-self.player.width))
         self.player.y=max(0,min(self.player.y,Window.height-self.player.height))
+        self.player.gun.update(vector=self.AttackJoystick.vector)
 
             #health
         self.player.healthBar.health=self.player.health
@@ -363,7 +413,7 @@ class Game(FloatLayout):
                     elif enemy_distance<safe_dist:
                         step=min(effective_speed,safe_dist-enemy_distance)
                         enemy.x -=enemy_x*step
-                        enemy_y -=enemy_y*step
+                        enemy.y -=enemy_y*step
                 if (enemy.role=="ranged"):
                     if not hasattr(enemy,"isAttack"):
                         enemy.isAttack=Clock.schedule_interval(lambda dt,e=enemy:self.spawnEnemyAttack(e,dt),enemy.attackDelay)
@@ -457,7 +507,7 @@ class AttackJoystick(Widget):
         self.knob_radius=25
         self.vector=(0,0)
         self.shooting=False
-        
+    
     def on_touch_move(self,touch):
             if not self.collide_point(touch.x,touch.y):
                 return
@@ -472,8 +522,9 @@ class AttackJoystick(Widget):
 
             if not self.shooting:
                 self.shooting=True
-                self.parent.player.attack=Clock.schedule_interval(self.parent.spawnAtttck,0.5)
-
+                
+                self.parent.player.attack=Clock.schedule_interval(self.parent.spawnAtttck,self.parent.player.guns[self.parent.player.gun.current]["rate"])
+                   
             return True
         
     def on_touch_up(self,touch):
@@ -486,6 +537,47 @@ class AttackJoystick(Widget):
 
             
 
+class Gun(Widget):
+    angle=NumericProperty(0)
+    def __init__(self,owner,**kwargs):
+        super().__init__(**kwargs)
+        self.type="basic"
+        self.current="basic"
+        self.owner=owner
+        self.size=(30,10)
+        self.offset=(20,0)
+        self.angle=0
+        self.reloading=False
+        self.gunData={
+                "basic":{"damage": 25,"range": 100,"magazine": 30,"ammo":30,"rate": 0.5,"reload": 1.5},
+                "sniper":{"damage": 50,"range": 300,"magazine": 7,"ammo":7,"rate": 1.2,"reload": 2.5},
+                "shotgun":{"damage": 30,"range": 60,"magazine": 2,"ammo":2,"rate": 0.9,"reload": 2.0},
+                "machine":{"damage": 20,"range": 120,"magazine": 25,"ammo":25,"rate": 0.15,"reload": 2.2}
+        }
+    def reload(self,dt):
+        self.reloading=False
+        self.parent.player.guns[self.parent.player.gun.current]["ammo"]=self.parent.player.guns[self.parent.player.gun.current]["magazine"]
+        self.parent.ui_layer.update()
+    def startReload(self):
+        if self.reloading :
+            return
+        self.reloading=True
+        Clock.schedule_once(self.parent.player.gun.reload,self.parent.player.guns[self.parent.player.gun.current]["reload"])
+        
+    def update(self,vector):
+        self.center=self.owner.center
+        dx,dy=vector
+        length=math.sqrt(dx**2+dy**2)
+        if dx==0 and dy==0:
+            return
+        self.angle=math.degrees(math.atan2(dy,dx))
+        dx /=length
+        dy /=length
+        self.center_x=self.owner.center_x+dx*self.offset[0]
+        self.center_y=self.owner.center_y+dy*self.offset[1]
+
+
+
 
 class PowerUp(Widget):
     color=ListProperty([1,1,1,1])
@@ -495,13 +587,14 @@ class PowerUp(Widget):
 class Player(Widget):
     def __init__(self,**kwargs):
         super().__init__(**kwargs)
-        self.damage=25
+        self.damage=200
         self.health=100
         self.max_health=100
         self.sheild=False
         self.damage_multiplier=1
         self.score=0
         self.freeze_multiplier=1
+        self.regen=0
 
 class Enemy(Widget):
     pass
@@ -525,7 +618,15 @@ class Attack(Widget):
         self.damage=50
 
 class GameUI(RelativeLayout):
-    pass
+    ammo_ratio=NumericProperty(1)
+    def __init__(self,**kwargs):
+            super().__init__(**kwargs)
+    def update(self):
+        gun=self.parent.player.guns[self.parent.player.gun.current]
+        self.ids.gun_text.text = (
+        f"{self.parent.player.gun.current} "
+        f"{gun['ammo']}/{gun['magazine']}")
+        self.ammo_ratio=gun["ammo"]/gun["magazine"]
 
 class UpgradePanel(RelativeLayout):
     pass

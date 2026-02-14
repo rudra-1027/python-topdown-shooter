@@ -97,8 +97,85 @@
         font_size: 16
         color: 0, 0, 0, 1
 
+<Gun>:
+    size_hint: None, None
+    size: 30, 10
+
+    canvas.before:
+        PushMatrix
+        Rotate:
+            angle: self.angle
+            origin: self.center
+
+    canvas:
+        Color:
+            rgba: 0.2,0.2,0.2,1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+        Color:
+            rgba: 0.8,0.8,0.8,1
+        Rectangle:
+            pos: self.center_x, self.center_y - 2
+            size: 12,4
+
+    canvas.after:
+        PopMatrix
+
+
 <GameUI>:
+    ammo_ratio: 1
     size_hint: 1,1
+
+    GunBar:
+        id: gun_ui
+        orientation: "horizontal"
+        size_hint: None,None
+        size: 260,50
+        spacing: 10
+        padding: 8
+        pos_hint: {"center_x":0.5,"y":0.02}
+        on_release: root.parent.changeWeapeon()
+
+        canvas.before:
+            Color:
+                rgba: 0,0,0,0.6
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [12]
+
+        Label:
+            id: gun_text
+            text: "basic 30/30"
+            size_hint_x: None
+            width: 110
+            color: 1,1,1,1
+            font_size: 16
+            halign: "left"
+            valign: "middle"
+            text_size: self.size
+
+        Widget:
+            id: ammo_bar
+            size_hint_x: 1
+
+            canvas:
+                Color:
+                    rgba: 0.2,0.2,0.2,1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+
+                Color:
+                    rgba: 0.2,0.8,1,1
+                Rectangle:
+                    pos: self.pos
+                    size: self.width * root.ammo_ratio, self.height
+
+
+<GunBar@ButtonBehavior+BoxLayout>:
 
 <UpgradePanel>:
     size_hint: 1,1
