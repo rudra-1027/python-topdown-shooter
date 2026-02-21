@@ -32,7 +32,7 @@ class Game(FloatLayout):
         self.add_widget(self.player.healthBar)
         self.player.gun=Gun(owner=self.player)
         self.add_widget(self.player.gun)
-        self.player.guns={"basic":{"damage": 25,"range": 100,"magazine": 30,"ammo":30,"rate": 0.25,"reload": 1.5}}
+        self.player.guns={"assualt":{"damage": 25,"range": 800,"magazine": 30,"ammo":30,"rate": 0.25,"reload": 1.5}}
         self.powerUps=[]
         self.powerUp_type={ 1:{"type":"health","size":24,"color":[0,1,0,1],"symbol":"+"},
                             2:{"type":"sheild","size":24,"color":[0,0.6,1,1],"symbol":"S"},
@@ -40,16 +40,15 @@ class Game(FloatLayout):
                             4:{"type": "nuke", "size": 24, "color": [1,0.5,0,1], "symbol": "N"},
                             5:{"type": "freeze", "size": 24, "color": [0.5,0.8,1,1], "symbol": "F"}}
         self.gunList=[      
-                            {"name": "Gun: Shotgun", "type": "shotgun", "value": "", "min_wave": 1},
-                            {"name": "Gun: machine", "type": "machine", "value":"", "min_wave": 2},
-                            {"name": "Gun: sniper", "type": "sniper", "value": "", "min_wave": 2},
+                            {"name": "Gun: Shotgun", "type": "shotgun",  "min_wave": 1},
+                            {"name": "Gun: machine", "type": "machine",  "min_wave": 2},
+                            {"name": "Gun: sniper", "type": "sniper",  "min_wave": 2},
                      ]
         self.upgrades = [
-                            {"name": "Damage +10", "type": "damage", "value": 10},
-                            {"name": "Regen +1", "type": "regen", "value": 1},
-                            {"name": "Max Health +20", "type": "max_health", "value": 20},
-                            {"name": "Heal 25", "type": "heal", "value": 25},
-                            {"name": "Bullet +1", "type": "bullet_count", "value": 1}
+                            {"target":"player","name": "Regen +1", "type": "regen", "value": 1,"count":0},
+                            {"target":"player","name": "Max Health +20", "type": "max_health", "value": 20,"count":0},
+                            {"target":"player","name": "Heal 25", "type": "health", "value": 25,"count":0},
+                            
                         ]
         
         self.game_paused = False
@@ -57,6 +56,10 @@ class Game(FloatLayout):
         self.enemies=[]
         self.attacks=[]
         self.Enemyattacks=[]
+        self.remove_attack=[]
+        self.remove_enemyAttack=[]
+        self.remove_enemy=[]
+        self.remove_powerup=[]
         self.counter=0
         self.bossWave=False
         self.bossAlive=0
@@ -77,11 +80,19 @@ class Game(FloatLayout):
         self.game_paused=True
         for gun in self.gunList:
             if self.wave_count==gun["min_wave"]:
-                self.upgrades.append(gun)
                 self.player.guns[gun["type"]]=self.player.gun.gunData[gun["type"]]
-                print(self.player.guns)
+                print("new gun unlocked!")
+
+        for upgrade in self.player.gun.assault_upgrade:
+            if self.wave_count>= upgrade["min_wave"] and upgrade not in self.upgrades:
+                self.upgrades.append(upgrade)
+                print("new upgrades available!")
+            
+            if upgrade["count"]>=upgrade["max_stack"] and upgrade  in self.upgrades:
+                self.upgrades.remove(upgrade)
+                print("max upgraded!")
         
-        
+        print(self.upgrades)
         choices=random.sample(self.upgrades,3)
         self.upgrade_panel=UpgradePanel()
         box=self.upgrade_panel.ids.upgrade_box
@@ -96,14 +107,23 @@ class Game(FloatLayout):
             box.add_widget(btn)
 
         self.ui_layer.add_widget(self.upgrade_panel)
+
+    def reset(self,dt):
+        self.player.gun.switch=True
+        print("u can switch")
+
     def changeWeapeon(self):
+        if not self.player.gun.switch:
+            return
+        self.player.gun.switch=False
         availableGuns=list(self.player.guns.keys())
         index=availableGuns.index(self.player.gun.current)
         gunindex=(index+1)%len(availableGuns)
         self.player.gun.current=availableGuns[gunindex]
         print(f"changed to {self.player.gun.current}")
-        self.player.damage=self.player.guns[self.player.gun.current]["damage"]
+        
         self.ui_layer.update()
+        Clock.schedule_once(self.reset,self.player.gun.cooldown)
         
 
 
@@ -111,17 +131,31 @@ class Game(FloatLayout):
     def apply_upgrade(self,upgrade):
         type=upgrade["type"]
         value=upgrade["value"]
+        target=upgrade["target"]
+        upgrade["count"]+=1
+        print(f'upgeaded {upgrade["count"]} times')
+
         if(type=="max_health"):
             self.player.max_health +=value
             self.player.healthBar.max_health +=value
             self.player.health +=value
             print(self.player.healthBar.max_health)
-        elif(type=="damage"):
-            self.player.damage +=value
-        elif(type=="heal"):
-            self.player.health =min(self.player.max_health,self.player.health + value)
-        elif(type=="regen"):
-            self.player.regen+=1
+        elif(target=="gun"):
+            gun=upgrade["gun"]
+            self.player.guns[gun][type]+=value
+            if(type=="reload"):
+                self.player.guns[gun]["reload"] = max(0.3, self.player.guns[gun]["reload"])
+
+            print(f"{gun} upgraded:{type}+{self.player.guns[gun][type]}")
+            self.ui_layer.update()
+            
+        elif(target=="player"):
+            if(hasattr(self.player,type)):
+                setattr(self.player,type,getattr(self.player,type)+value)
+        
+
+        
+        
 
             
     def apply_powerUp(self,power):
@@ -143,7 +177,9 @@ class Game(FloatLayout):
         elif(power.type=="nuke"):
             for enemy in self.enemies[:]:
                 enemy.health -=50
-                self.enemyDeath(enemy)
+                if enemy.health <= 0:
+                    if enemy not in self.remove_enemy:
+                        self.remove_enemy.append(enemy)
 
             
 
@@ -178,15 +214,17 @@ class Game(FloatLayout):
         if self.player.guns[self.player.gun.current]["ammo"]<=0:
             return
         self.player.guns[self.player.gun.current]["ammo"]-=1
-        print(self.player.guns[self.player.gun.current]["ammo"])
+        
         
         self.ui_layer.update()
         direction=self.AttackJoystick.vector
         if direction == (0,0):
             direction = (0,1)
         attack=Attack(direction=direction)
-        attack.damage=self.player.damage
+        attack.damage=self.player.guns[self.player.gun.current]["damage"]
         attack.center=self.player.gun.center
+        attack.start_x=attack.center_x
+        attack.start_y=attack.center_y
         self.add_widget(attack)
         self.attacks.append(attack)
     
@@ -368,30 +406,63 @@ class Game(FloatLayout):
 
         for powers in self.powerUps:
             if powers.collide_widget(self.player):
-                self.remove_widget(powers)
-                self.powerUps.remove(powers)
+                self.remove_powerup.append(powers)
+                # self.remove_widget(powers)
+                # self.powerUps.remove(powers)
                 self.apply_powerUp(powers)
                
            
 
             #attack
-        for attack in self.attacks[:]:
+        for attack in self.attacks:
             attack.x +=attack.vx*attack.speed
             attack.y +=attack.vy*attack.speed
-            if attack.y > Window.height:
-                self.remove_widget(attack)
-                self.attacks.remove(attack)
+            
+            
+            attack.rdx=attack.center_x-attack.start_x
+            attack.rdy=attack.center_y-attack.start_y
+            distance=math.hypot(attack.rdx,attack.rdy)
+            if attack.y > Window.height or distance >self.player.guns[self.player.gun.current]["range"]:
+                # self.remove_widget(attack)
+                self.remove_attack.append(attack)
+                # self.attacks.remove(attack)
+            for enemy in self.enemies:
+                dx=enemy.center_x-attack.center_x
+                dy=enemy.center_y-attack.center_y
+                radius=enemy.width*0.5
 
-        for attack in self.Enemyattacks[:]:
+                if (dx**2+dy**2)<radius**2:
+                    enemy.health -=attack.damage*self.player.damage_multiplier
+                    # self.remove_widget(attack)
+                    self.remove_attack.append(attack)
+                    # self.attacks.remove(attack)
+                    print(enemy.health)
+                    if enemy.health<0:
+                        if enemy not in self.remove_enemy:
+                            self.remove_enemy.append(enemy)
+                        # self.enemyDeath(enemy)
+                    break
+
+
+        for attack in self.Enemyattacks:
             attack.x +=attack.vx*attack.speed
             attack.y +=attack.vy*attack.speed
-            # if attack.y > Window.height :
-            #     self.remove_widget(attack)
-            #     self.Enemyattacks.remove(attack)
+            if(attack.x<-50 or attack.x>Window.width+50 or attack.y<-50 or attack.y>Window.height+50 ):
+                # self.remove_widget(attack)
+                self.remove_enemyAttack.append(attack)
+                # self.Enemyattacks.remove(attack)
+                continue
+            if attack.collide_widget(self.player):
+                    self.player.health-=attack.damage
+                    print(self.player.health)
+                    self.remove_enemyAttack.append(attack)
+                    # self.remove_widget(attack)
+                    # self.Enemyattacks.remove(attack)
+            
             
        
          #enemy
-        for enemy in self.enemies[:]:
+        for enemy in self.enemies:
             #movement
             px,py=self.player.center
             ex,ey=enemy.center
@@ -445,29 +516,50 @@ class Game(FloatLayout):
                     if hasattr(enemy, "isAttack"):
                         enemy.isAttack.cancel()
                         del enemy.isAttack
-                    self.remove_widget(enemy)
-                    self.enemies.remove(enemy)
+                    self.remove_enemy.append(enemy)
+                    # self.remove_widget(enemy)
+                    # self.enemies.remove(enemy)
 
             else:
                 if (enemy.role == "melee" or enemy.role=="boss") and  hasattr(enemy,"isAttack"):
                     enemy.isAttack.cancel()
                     del enemy.isAttack
-            for attack in self.Enemyattacks[:]:
-                if attack.collide_widget(self.player):
-                    self.player.health-=attack.damage
-                    print(self.player.health)
-                    self.remove_widget(attack)
-                    self.Enemyattacks.remove(attack)
+            
+                
 
             #colloison with attack
-            for attack in self.attacks[:]:
-                if enemy.collide_widget(attack):
-                        enemy.health -=attack.damage*self.player.damage_multiplier
-                        self.remove_widget(attack)
-                        self.attacks.remove(attack)
-                        print(enemy.health)
-                        if enemy.health<0:
-                            self.enemyDeath(enemy)
+            # for attack in self.attacks[:]:
+            #     if enemy.collide_widget(attack):
+            #             enemy.health -=attack.damage*self.player.damage_multiplier
+            #             self.remove_widget(attack)
+            #             self.attacks.remove(attack)
+            #             print(enemy.health)
+            #             if enemy.health<0:
+            #                 self.enemyDeath(enemy)
+        if len(self.remove_enemy)>0:
+            for entity in self.remove_enemy:
+                if entity in self.enemies:
+                    self.enemyDeath(entity)
+            self.remove_enemy.clear()
+        if len(self.remove_attack)>0:
+            for entity in self.remove_attack:
+                if entity in self.attacks:
+                    self.attacks.remove(entity)
+                if entity.parent:
+                    self.remove_widget(entity)
+            self.remove_attack.clear()
+        if len(self.remove_powerup)>0:
+            for entity in self.remove_powerup:
+                self.powerUps.remove(entity)
+                self.remove_widget(entity)
+            self.remove_powerup.clear()
+        if len(self.remove_enemyAttack)>0:
+            for entity in self.remove_enemyAttack:
+                self.Enemyattacks.remove(entity)
+                self.remove_widget(entity)
+            self.remove_enemyAttack.clear()
+            
+
                         
 
                 
@@ -541,19 +633,196 @@ class Gun(Widget):
     angle=NumericProperty(0)
     def __init__(self,owner,**kwargs):
         super().__init__(**kwargs)
-        self.type="basic"
-        self.current="basic"
+        self.type="assualt"
+        self.current="assualt"
         self.owner=owner
         self.size=(30,10)
         self.offset=(20,0)
         self.angle=0
+        self.switch=True
+        self.cooldown=5
         self.reloading=False
         self.gunData={
-                "basic":{"damage": 25,"range": 100,"magazine": 30,"ammo":30,"rate": 0.5,"reload": 1.5},
-                "sniper":{"damage": 50,"range": 300,"magazine": 7,"ammo":7,"rate": 1.2,"reload": 2.5},
-                "shotgun":{"damage": 30,"range": 60,"magazine": 2,"ammo":2,"rate": 0.9,"reload": 2.0},
-                "machine":{"damage": 20,"range": 120,"magazine": 25,"ammo":25,"rate": 0.15,"reload": 2.2}
+                "assualt":{"damage": 25,"range": 800,"magazine": 30,"ammo":30,"rate": 0.5,"reload": 1.5},
+                "sniper":{"damage": 50,"range": 1400,"magazine": 7,"ammo":7,"rate": 1.2,"reload": 2.5},
+                "shotgun":{"damage": 30,"range": 350,"magazine": 2,"ammo":2,"rate": 0.9,"reload": 2.0},
+                "machine":{"damage": 20,"range": 700,"magazine": 25,"ammo":25,"rate": 0.15,"reload": 2.2}
         }
+        self.assault_upgrade= [
+    # 
+    {
+    "target":"gun",
+    "gun":"assualt",
+    "name":"Assault Damage++",
+    "type":"damage",
+    "value":5,
+    "min_wave":1,
+    "max_stack":2,
+    "count":0
+},
+{
+    "target":"gun",
+    "gun":"assualt",
+    "name":"Assault Extended Magazine",
+    "type":"magazine",
+    "value":4,
+    "min_wave":1,
+    "max_stack":2,
+    "count":0
+},
+{
+    "target":"gun",
+    "gun":"assualt",
+    "name":"Assault Fast Reload",
+    "type":"reload",
+    "value":-0.15,
+    "min_wave":2,
+    "max_stack":2,
+    "count":0
+},
+{
+    "target":"gun",
+    "gun":"assualt",
+    "name":"Assault Extended Barrel",
+    "type":"range",
+    "value":60,
+    "min_wave":2,
+    "max_stack":2,
+    "count":0
+},
+{
+    "target":"gun",
+    "gun":"sniper",
+    "name":"Sniper Damage++",
+    "type":"damage",
+    "value":12,
+    "min_wave":2,
+    "max_stack":2,
+    "count":0
+},
+{
+    "target":"gun",
+    "gun":"shotgun",
+    "name":"Shotgun Damage++",
+    "type":"damage",
+    "value":8,
+    "min_wave":1,
+    "max_stack":2,
+    "count":0
+},
+{
+    "target":"gun",
+    "gun":"shotgun",
+    "name":"Shotgun Extended Shell",
+    "type":"magazine",
+    "value":1,
+    "min_wave":1,
+    "max_stack":2,
+    "count":0
+},
+{
+    "target":"gun",
+    "gun":"shotgun",
+    "name":"Shotgun Quick Pump",
+    "type":"reload",
+    "value":-0.2,
+    "min_wave":2,
+    "max_stack":2,
+    "count":0
+},
+{
+    "target":"gun",
+    "gun":"shotgun",
+    "name":"Shotgun Choke Barrel",
+    "type":"range",
+    "value":40,
+    "min_wave":2,
+    "max_stack":2,
+    "count":0
+},
+{
+    "target":"gun",
+    "gun":"sniper",
+    "name":"Sniper Extended Magazine",
+    "type":"magazine",
+    "value":1,
+    "min_wave":2,
+    "max_stack":2,
+    "count":0
+},
+{
+    "target":"gun",
+    "gun":"sniper",
+    "name":"Sniper Fast Reload",
+    "type":"reload",
+    "value":-0.25,
+    "min_wave":3,
+    "max_stack":2,
+    "count":0
+},
+{
+    "target":"gun",
+    "gun":"sniper",
+    "name":"Sniper Precision Barrel",
+    "type":"range",
+    "value":120,
+    "min_wave":3,
+    "max_stack":2,
+    "count":0
+},
+{
+    "target":"gun",
+    "gun":"sniper",
+    "name":"Sniper Damage++",
+    "type":"damage",
+    "value":12,
+    "min_wave":2,
+    "max_stack":2,
+    "count":0
+},
+
+{
+    "target":"gun",
+    "gun":"machine",
+    "name":"Machine Damage++",
+    "type":"damage",
+    "value":3,
+    "min_wave":1,
+    "max_stack":2,
+    "count":0
+},
+{
+    "target":"gun",
+    "gun":"machine",
+    "name":"Machine Extended Magazine",
+    "type":"magazine",
+    "value":6,
+    "min_wave":1,
+    "max_stack":2,
+    "count":0
+},
+{
+    "target":"gun",
+    "gun":"machine",
+    "name":"Machine Fast Reload",
+    "type":"reload",
+    "value":-0.18,
+    "min_wave":2,
+    "max_stack":2,
+    "count":0
+},
+{
+    "target":"gun",
+    "gun":"machine",
+    "name":"Machine Reinforced Barrel",
+    "type":"range",
+    "value":50,
+    "min_wave":2,
+    "max_stack":2,
+    "count":0
+},
+
+]
     def reload(self,dt):
         self.reloading=False
         self.parent.player.guns[self.parent.player.gun.current]["ammo"]=self.parent.player.guns[self.parent.player.gun.current]["magazine"]
@@ -595,6 +864,7 @@ class Player(Widget):
         self.score=0
         self.freeze_multiplier=1
         self.regen=0
+        
 
 class Enemy(Widget):
     pass
@@ -614,6 +884,8 @@ class Attack(Widget):
         else:
             self.vx =dx/length
             self.vy =dy/length
+        self.start_x=0
+        self.start_y=0
         self.speed=7
         self.damage=50
 
