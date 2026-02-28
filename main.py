@@ -1,38 +1,73 @@
+import os
 from kivy.app import App
 from kivy.uix.widget import Widget
 from kivy.uix.floatlayout import FloatLayout
 from kivy.core.window import Window
 from kivy.clock import Clock
-from kivy.properties import NumericProperty,ListProperty, StringProperty
+from kivy.properties import NumericProperty,ListProperty, StringProperty,ObjectProperty
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.relativelayout import RelativeLayout
+from kivy.core.image import Image as CoreImage
+from kivy.graphics import Rectangle
+
+
+from kivy.graphics.texture import Texture
+from kivy.graphics import PushMatrix,PopMatrix
+from kivy.graphics import Translate
+from kivy.config import Config
+from pytmx import TiledMap
+
+from pytmx.util_pygame import load_pygame
+import pygame
+
 import math
 import random
+
+Config.set("graphics","resizable",False)
 
 
 
 
 class Game(FloatLayout):
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.game_paused=False
+        Window.size=(1280,720)
+        
+        self.gameState="playing"
+        self.world_layer=FloatLayout()
+        self.ground_layer=FloatLayout()
+        self.game_layer=FloatLayout()
+        self.ground_layer.size_hint = (None, None)
+        self.game_layer.size_hint = (None, None)
         self.ui_layer=GameUI()
-        self.add_widget(self.ui_layer)
+        self.overlay_layer=FloatLayout()
+        
+        self.overlay_layer.size_hint = (None, None)
+        self.overlay_layer.size = (0, 0)
+        
+        
 
         self.player=Player()
+        
         self.joystick=JoyStick(size_hint=(None, None),size=(120, 120),pos_hint={"x": 0.05, "y": 0.05})
         self.AttackJoystick=AttackJoystick(size_hint=(None, None),size=(120, 120),pos_hint={"right": 0.95, "y": 0.05})
         self.AttackJoystick.pos = (Window.width - 160, 20)
-        self.add_widget(self.AttackJoystick)
-        self.add_widget(self.joystick)
-        self.add_widget(self.player)
+        self.player.gun=Gun(owner=self.player)
+        
+        
+        self.game_layer.add_widget(self.player)
+        self.game_layer.add_widget(self.player.gun)
+        self.ui_layer.add_widget(self.AttackJoystick)
+        self.ui_layer.add_widget(self.joystick)
+        
+        
         self.player.center = self.center
         self.player.healthBar=HealthBar(max_health=self.player.max_health,health=self.player.health, size_hint=(None, None),size=(200, 20),pos_hint={"x": 0.02, "top": 0.98})
-        self.add_widget(self.player.healthBar)
-        self.player.gun=Gun(owner=self.player)
-        self.add_widget(self.player.gun)
-        self.player.guns={"assualt":{"damage": 25,"range": 800,"magazine": 30,"ammo":30,"rate": 0.25,"reload": 1.5}}
+        self.ui_layer.add_widget(self.player.healthBar)
+        
+        self.player.guns={"assualt":{"damage": 25,"range": 800,"magazine": 30,"ammo":30,"rate": 0.5,"reload": 1.5}}
         self.powerUps=[]
         self.powerUp_type={ 1:{"type":"health","size":24,"color":[0,1,0,1],"symbol":"+"},
                             2:{"type":"sheild","size":24,"color":[0,0.6,1,1],"symbol":"S"},
@@ -51,7 +86,7 @@ class Game(FloatLayout):
                             
                         ]
         
-        self.game_paused = False
+        
         #enemy
         self.enemies=[]
         self.attacks=[]
@@ -60,7 +95,10 @@ class Game(FloatLayout):
         self.remove_enemyAttack=[]
         self.remove_enemy=[]
         self.remove_powerup=[]
+        self.obstacles=[]
+        self.ground=[]
         self.counter=0
+        self.game_over_shown=False
         self.bossWave=False
         self.bossAlive=0
         self.maxBoss=1
@@ -68,16 +106,210 @@ class Game(FloatLayout):
         self.wave_count=0
         self.enemies_per_wave=0
        
-        self.enemy=Clock.schedule_interval(self.spawnEnemy,5)
+        self.enemy=Clock.schedule_interval(self.spawnEnemy,10)
         self.powerUp=Clock.schedule_interval(self.spawnPowerUp,5)
-        Clock.schedule_interval(self.playerRegen,5)
-        Clock.schedule_interval(self.update,1/60)
+        self.regen_event=Clock.schedule_interval(self.playerRegen,5)
+        self.game_update=Clock.schedule_interval(self.update,1/60)
+        self.add_widget(self.world_layer)
+
+        self.world_layer.add_widget(self.ground_layer)
+        self.world_layer.add_widget(self.game_layer)
+        self.add_widget(self.overlay_layer)
+        self.add_widget(self.ui_layer)
+        with self.world_layer.canvas.before:
+            PushMatrix()
+            self.camera_translate=Translate(0,0)
+        with self.world_layer.canvas.after:
+            PopMatrix()
+            
+        self.ui_layer.game=self
+        self.overlay_layer.game=self
+        
+        self.game_layer.game=self
+        
+        self.loadMap("gameAsset/maps/map1.tmx")
+        
+        
+  
+
+
+
+
+
+    
+
+
+    def update_camera(self):
+        
+        
+
+        camera_x = self.player.center_x - Window.width / 2
+        camera_y = self.player.center_y - Window.height / 2
+
+        
+        max_x = self.max_world_x - Window.width
+        max_y = self.max_world_y - Window.height
+
+        camera_x = max(self.min_world_x, min(camera_x, max_x))
+        camera_y = max(self.min_world_y, min(camera_y, max_y))
+
+        self.camera_translate.x = -camera_x
+        self.camera_translate.y = -camera_y
+            
+            
+        
+    def loadMap(self, tmx_path):
+
+        pygame.init()
+
+        if not pygame.display.get_init():
+            pygame.display.init()
+        if pygame.display.get_surface() is None:
+            try:
+                pygame.display.set_mode((1, 1), flags=pygame.HIDDEN)
+            except TypeError:
+                pygame.display.set_mode((1, 1))
+
+        if not os.path.isabs(tmx_path):
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            tmx_path = os.path.join(base_dir, tmx_path)
+
+        tmx_data = load_pygame(tmx_path)
+
+        min_iso_x = float("inf")
+        max_iso_x = float("-inf")
+        min_iso_y = float("inf")
+        max_iso_y = float("-inf")
+
+        for layer in tmx_data.visible_layers:
+            if not hasattr(layer, "data"):
+                continue
+            for x, y, gid in layer:
+                if gid == 0:
+                    continue
+                iso_x = (x - y) * (tmx_data.tilewidth // 2)
+                iso_y = (x + y) * (tmx_data.tileheight // 2)
+                min_iso_x = min(min_iso_x, iso_x)
+                max_iso_x = max(max_iso_x, iso_x)
+                min_iso_y = min(min_iso_y, iso_y)
+                max_iso_y = max(max_iso_y, iso_y)
+
+        if min_iso_x == float("inf"):
+            return
+
+        base_offset_x = -min_iso_x
+        base_offset_y = -min_iso_y
+
+        self.world_w = (max_iso_x - min_iso_x) + tmx_data.tilewidth
+        self.world_h = (max_iso_y - min_iso_y) + tmx_data.tileheight
+
+        self.ground_layer.size = (self.world_w, self.world_h)
+        self.game_layer.size = (self.world_w, self.world_h)
+
+        offset_x = base_offset_x + (Window.width - self.world_w) / 2
+        offset_y = base_offset_y + (Window.height - self.world_h) / 2
+
+        self.ground_layer.canvas.clear()
+        canvas_layer = self.ground_layer.canvas
+
+        texture_cache = {}
+
+        
+        self.min_world_x = float("inf")
+        self.min_world_y = float("inf")
+        self.max_world_x = float("-inf")
+        self.max_world_y = float("-inf")
+
+        for layer in tmx_data.visible_layers:
+
+            if not hasattr(layer, "data"):
+                continue
+
+            with canvas_layer:
+
+                for x, y, gid in layer:
+
+                    if gid == 0:
+                        continue
+
+                    surface = tmx_data.get_tile_image_by_gid(gid)
+                    if surface is None:
+                        continue
+
+                    if gid not in texture_cache:
+
+                        width, height = surface.get_size()
+                        texture = Texture.create(size=(width, height), colorfmt='rgba')
+                        raw_data = pygame.image.tostring(surface, "RGBA", True)
+                        texture.blit_buffer(raw_data, colorfmt='rgba', bufferfmt='ubyte')
+                        texture_cache[gid] = texture
+
+                    texture = texture_cache[gid]
+
+                    iso_x = (x - y) * (tmx_data.tilewidth // 2)
+                    iso_y = (x + y) * (tmx_data.tileheight // 2)
+
+                    draw_x = iso_x + offset_x
+                    draw_y = iso_y + offset_y
+
+                    
+                    self.min_world_x = min(self.min_world_x, draw_x)
+                    self.min_world_y = min(self.min_world_y, draw_y)
+                    self.max_world_x = max(self.max_world_x, draw_x + texture.size[0])
+                    self.max_world_y = max(self.max_world_y, draw_y + texture.size[1])
+
+                    Rectangle(
+                        texture=texture,
+                        pos=(draw_x, draw_y),
+                        size=texture.size
+                    )
+
+        print("World bounds:")
+        print(self.min_world_x, self.max_world_x)
+        print(self.min_world_y, self.max_world_y)
+
+    def pause(self):
+        if self.gameState!="playing":
+            return
+        print("entered")
+        self.gameState="pause"
+        
+            
+        # if self.game_update:   
+        #     self.game_update.cancel()
+        self.ui_layer.ids.pause_button.disabled=True
+        self.ui_layer.ids.pause_menu.opacity=1
+        self.ui_layer.ids.pause_menu.disabled=False
+    
+    
+    def resume(self):
+       
+        self.gameState="playing"
+        
+        # self.game_update=Clock.schedule_interval(self.update,1/60)
+        self.ui_layer.ids.pause_button.disabled=False
+        self.ui_layer.ids.pause_menu.opacity=0
+        self.ui_layer.ids.pause_menu.disabled=True
+    def restart(self):
+        
+        self.gameState="playing"
+        
+        # self.game_update=Clock.schedule_interval(self.update,1/60)
+        self.ui_layer.ids.pause_button.disabled=False
+        self.ui_layer.ids.pause_menu.opacity=0
+        self.ui_layer.ids.pause_menu.disabled=True
+
+
+
     def playerRegen(self,dt):
+        if self.gameState!="playing":
+            return
         if self.player.health<self.player.max_health:
             self.player.health +=self.player.regen
 
     def show_menu(self):
-        self.game_paused=True
+        
+        self.gameState="pause"
         for gun in self.gunList:
             if self.wave_count==gun["min_wave"]:
                 self.player.guns[gun["type"]]=self.player.gun.gunData[gun["type"]]
@@ -100,9 +332,10 @@ class Game(FloatLayout):
             btn=Button(text=upgrade["name"],size_hint_y=None, height=60 ) 
             
             def onclick(instance,up=upgrade):
+                
                 self.apply_upgrade(up)
                 self.ui_layer.remove_widget(self.upgrade_panel)
-                self.game_paused=False
+                self.gameState="playing"
             btn.bind(on_press=onclick)
             box.add_widget(btn)
 
@@ -161,6 +394,7 @@ class Game(FloatLayout):
     def apply_powerUp(self,power):
         if(power.type=="health"):
             self.player.health +=10
+            print(self.player.health)
         elif(power.type=="sheild"):
             self.player.sheild=True
             Clock.schedule_once(lambda dt: setattr(self.player,"sheild",False),3)
@@ -186,6 +420,8 @@ class Game(FloatLayout):
 
 
     def spawnPowerUp(self,dt):
+        if self.gameState!="playing":
+            return
         if Window.width <= 0 or Window.height <= 0:
             return
         num=random.randint(1,5)
@@ -197,13 +433,13 @@ class Game(FloatLayout):
         max_x=max(0,Window.width-powerUp.width)
         max_y=max(0,Window.height-powerUp.height)
         powerUp.pos=(random.uniform(0,max_x),random.uniform(0,max_y))
-        self.add_widget(powerUp)
+        self.game_layer.add_widget(powerUp)
         self.powerUps.append(powerUp)
         Clock.schedule_once(lambda dt:self.despawnPowerUp(powerUp),8)
 
     def despawnPowerUp(self,powerUp):
         if powerUp.parent:
-            self.remove_widget(powerUp)
+            self.game_layer.remove_widget(powerUp)
             self.powerUps.remove(powerUp)
 
 
@@ -225,7 +461,7 @@ class Game(FloatLayout):
         attack.center=self.player.gun.center
         attack.start_x=attack.center_x
         attack.start_y=attack.center_y
-        self.add_widget(attack)
+        self.game_layer.add_widget(attack)
         self.attacks.append(attack)
     
     def spawnEnemyAttack(self,enemy,dt):
@@ -238,7 +474,7 @@ class Game(FloatLayout):
         Enemyattack=Attack(direction=direction)
         Enemyattack.damage=enemy.damage
         Enemyattack.center=enemy.center
-        self.add_widget(Enemyattack)
+        self.game_layer.add_widget(Enemyattack)
         self.Enemyattacks.append(Enemyattack)
 
     def wave_data(self):
@@ -249,13 +485,17 @@ class Game(FloatLayout):
          self.maxBoss=1+self.wave_count//2
 
     def spawnEnemy(self,dt):
-        if self.game_paused==True:
+        if self.gameState!="playing":
             return
+       
         if Window.width <= 0 or Window.height <= 0:
             return
         if self.counter==0 and len(self.enemies)==0 :
+            
             self.show_menu()
             self.wave_data()
+            
+            
         self.counter +=1
         print(self.counter)
 
@@ -303,18 +543,19 @@ class Game(FloatLayout):
             
             max_x=max(0,Window.width-enemy.width)
             enemy.pos=(random.uniform(0,max_x),Window.height)
-            self.add_widget(enemy)
+            self.game_layer.add_widget(enemy)
             print(enemy.role)
             self.enemies.append(enemy)
     
     def enemyDeath(self,enemy):
+        
         if enemy.health <=0:
             if hasattr(enemy, "isAttack"):
                 enemy.isAttack.cancel()
                 del enemy.isAttack
-            self.remove_widget(enemy)
+            self.game_layer.remove_widget(enemy)
             if hasattr(enemy,"healthBar"):
-                self.remove_widget(enemy.healthBar)
+                self.game_layer.remove_widget(enemy.healthBar)
             self.enemies.remove(enemy)
             if (self.bossWave==False):
                 self.player.score +=1
@@ -351,8 +592,8 @@ class Game(FloatLayout):
         enemy.attackDelay=5
         max_x=max(0,Window.width-enemy.width)
         enemy.pos=(random.uniform(0,max_x),Window.height)
-        self.add_widget(enemy)
-        self.add_widget(enemy.healthBar)
+        self.game_layer.add_widget(enemy)
+        self.game_layer.add_widget(enemy.healthBar)
         self.enemies.append(enemy)
     
     def show_wave_text(self,wave):
@@ -363,8 +604,8 @@ class Game(FloatLayout):
             size=(300, 100),
             pos_hint={"center_x": 0.5, "center_y": 0.5}
         )
-        self.add_widget(self.wave_label)
-        Clock.schedule_once(lambda dt:self.remove_widget(self.wave_label),2)
+        self.game_layer.add_widget(self.wave_label)
+        Clock.schedule_once(lambda dt:self.game_layer.remove_widget(self.wave_label),2)
         
 
 
@@ -372,10 +613,10 @@ class Game(FloatLayout):
 
 
     def update(self,dt):
-        if self.game_paused==True:
+        if self.gameState!="playing":
             return
         
-        
+        self.update_camera()
 
         if self.player.guns[self.player.gun.current]["ammo"]<=0 and not self.player.gun.reloading:
             print("entered")
@@ -392,17 +633,26 @@ class Game(FloatLayout):
         vx,vy=self.joystick.vector
     
         speed=4
+        
+        self.player.update_direction(vx,vy)
+        
+            
+
         self.player.x +=vx*speed
         self.player.y +=vy*speed
 
-        self.player.x=max(0,min(self.player.x,Window.width-self.player.width))
-        self.player.y=max(0,min(self.player.y,Window.height-self.player.height))
+        self.player.x=max(self.min_world_x,min(self.player.x,self.max_world_x-self.player.width))
+        self.player.y=max(self.min_world_y,min(self.player.y,self.max_world_y-self.player.height))
         self.player.gun.update(vector=self.AttackJoystick.vector)
 
             #health
         self.player.healthBar.health=self.player.health
         if self.player.health <= 0:
-            print("Game Over!!")
+            if not self.game_over_shown:
+                print("Game Over!!")
+                self.game_over_shown = True
+                self.gameState = "gameover"
+            return
 
         for powers in self.powerUps:
             if powers.collide_widget(self.player):
@@ -464,6 +714,7 @@ class Game(FloatLayout):
          #enemy
         for enemy in self.enemies:
             #movement
+            
             px,py=self.player.center
             ex,ey=enemy.center
             # enemy_x=self.player.x-enemy.x
@@ -486,8 +737,12 @@ class Game(FloatLayout):
                         enemy.x -=enemy_x*step
                         enemy.y -=enemy_y*step
                 if (enemy.role=="ranged"):
-                    if not hasattr(enemy,"isAttack"):
-                        enemy.isAttack=Clock.schedule_interval(lambda dt,e=enemy:self.spawnEnemyAttack(e,dt),enemy.attackDelay)
+                    enemy.attack_timer+=dt
+                    # if not hasattr(enemy,"isAttack") :
+                    #     enemy.isAttack=Clock.schedule_interval(lambda dt,e=enemy:self.spawnEnemyAttack(e,dt),enemy.attackDelay)
+                    if enemy.attack_timer>enemy.attackDelay:
+                        self.spawnEnemyAttack(enemy,dt)
+                        enemy.attack_timer=0
                     if(enemy_distance<enemy.minDist):
                         enemy.x-=enemy_x*enemy.speed
                         enemy.y-=enemy_y*enemy.speed
@@ -507,8 +762,12 @@ class Game(FloatLayout):
             #colloison with player
             if enemy.collide_widget(self.player):
                 if enemy.role=="melee" or enemy.role=="boss":
-                    if not hasattr(enemy,"isAttack"):
-                        enemy.isAttack=Clock.schedule_interval(lambda dt:self.enemyAttack(enemy,dt),enemy.attackDelay)
+                    # if not hasattr(enemy,"isAttack"):
+                    #     enemy.isAttack=Clock.schedule_interval(lambda dt:self.enemyAttack(enemy,dt),enemy.attackDelay)
+                    enemy.attack_timer+=dt
+                    if enemy.attack_timer>enemy.attackDelay:
+                        self.enemyAttack(enemy,dt)
+                        enemy.attack_timer=0    
                         print(self.player.health)
                     
                 if enemy.role=="exploder":
@@ -521,6 +780,8 @@ class Game(FloatLayout):
                     # self.enemies.remove(enemy)
 
             else:
+                if(enemy.role=="melee" or enemy.role=="boss"):
+                    enemy.attack_timer=0
                 if (enemy.role == "melee" or enemy.role=="boss") and  hasattr(enemy,"isAttack"):
                     enemy.isAttack.cancel()
                     del enemy.isAttack
@@ -546,17 +807,17 @@ class Game(FloatLayout):
                 if entity in self.attacks:
                     self.attacks.remove(entity)
                 if entity.parent:
-                    self.remove_widget(entity)
+                    self.game_layer.remove_widget(entity)
             self.remove_attack.clear()
         if len(self.remove_powerup)>0:
             for entity in self.remove_powerup:
                 self.powerUps.remove(entity)
-                self.remove_widget(entity)
+                self.game_layer.remove_widget(entity)
             self.remove_powerup.clear()
         if len(self.remove_enemyAttack)>0:
             for entity in self.remove_enemyAttack:
                 self.Enemyattacks.remove(entity)
-                self.remove_widget(entity)
+                self.game_layer.remove_widget(entity)
             self.remove_enemyAttack.clear()
             
 
@@ -575,7 +836,7 @@ class JoyStick(Widget):
         self.vector=(0,0)
     
     def on_touch_move(self,touch):
-        if not self.collide_point(touch.x,touch.y):
+        if not self.collide_point(touch.x,touch.y) or self.parent.game.gameState!="playing":
             return
         
         dx=touch.x-self.center_x
@@ -601,7 +862,7 @@ class AttackJoystick(Widget):
         self.shooting=False
     
     def on_touch_move(self,touch):
-            if not self.collide_point(touch.x,touch.y):
+            if not self.collide_point(touch.x,touch.y) or self.parent.game.gameState!="playing":
                 return
             dx=touch.x-self.center_x
             dy=touch.y-self.center_y
@@ -615,15 +876,15 @@ class AttackJoystick(Widget):
             if not self.shooting:
                 self.shooting=True
                 
-                self.parent.player.attack=Clock.schedule_interval(self.parent.spawnAtttck,self.parent.player.guns[self.parent.player.gun.current]["rate"])
+                self.parent.game.player.attack=Clock.schedule_interval(self.parent.game.spawnAtttck,self.parent.game.player.guns[self.parent.game.player.gun.current]["rate"])
                    
             return True
         
     def on_touch_up(self,touch):
             self.vector=(0,0)
             if self.shooting:
-                self.parent.player.attack.cancel()
-                del self.parent.player.attack
+                self.parent.game.player.attack.cancel()
+                del self.parent.game.player.attack
                 self.shooting=False
             
 
@@ -825,13 +1086,13 @@ class Gun(Widget):
 ]
     def reload(self,dt):
         self.reloading=False
-        self.parent.player.guns[self.parent.player.gun.current]["ammo"]=self.parent.player.guns[self.parent.player.gun.current]["magazine"]
-        self.parent.ui_layer.update()
+        self.parent.game.player.guns[self.parent.game.player.gun.current]["ammo"]=self.parent.game.player.guns[self.parent.game.player.gun.current]["magazine"]
+        self.parent.game.ui_layer.update()
     def startReload(self):
         if self.reloading :
             return
         self.reloading=True
-        Clock.schedule_once(self.parent.player.gun.reload,self.parent.player.guns[self.parent.player.gun.current]["reload"])
+        Clock.schedule_once(self.parent.game.player.gun.reload,self.parent.game.player.guns[self.parent.game.player.gun.current]["reload"])
         
     def update(self,vector):
         self.center=self.owner.center
@@ -854,6 +1115,12 @@ class PowerUp(Widget):
 
 
 class Player(Widget):
+    texture=ObjectProperty(None)
+    angle=NumericProperty(0)
+    
+    
+    
+    
     def __init__(self,**kwargs):
         super().__init__(**kwargs)
         self.damage=200
@@ -864,10 +1131,87 @@ class Player(Widget):
         self.score=0
         self.freeze_multiplier=1
         self.regen=0
+        self.state="idle_up"
+        self.facing="up"
+        self.frame_index=0
+        self.animations={
+            "idle_up":[CoreImage("gameAsset/Characters/Male/Male_7_Idle0.png").texture],
+            "run_up":[CoreImage("gameAsset/Characters/Male/Male_7_Run0.png").texture,
+                     CoreImage("gameAsset/Characters/Male/Male_7_Run1.png").texture,
+                     CoreImage("gameAsset/Characters/Male/Male_7_Run2.png").texture,
+                     CoreImage("gameAsset/Characters/Male/Male_7_Run3.png").texture,
+                     CoreImage("gameAsset/Characters/Male/Male_7_Run4.png").texture,],
+            "idle_down":[CoreImage("gameAsset/Characters/Male/Male_3_Idle0.png").texture],
+            "run_down":[CoreImage("gameAsset/Characters/Male/Male_3_Run0.png").texture,
+                     CoreImage("gameAsset/Characters/Male/Male_3_Run1.png").texture,
+                     CoreImage("gameAsset/Characters/Male/Male_3_Run2.png").texture,
+                     CoreImage("gameAsset/Characters/Male/Male_3_Run3.png").texture,
+                     CoreImage("gameAsset/Characters/Male/Male_3_Run4.png").texture,],
+            "idle_right":[CoreImage("gameAsset/Characters/Male/Male_1_Idle0.png").texture],
+            "run_right":[CoreImage("gameAsset/Characters/Male/Male_1_Run0.png").texture,
+                     CoreImage("gameAsset/Characters/Male/Male_1_Run1.png").texture,
+                     CoreImage("gameAsset/Characters/Male/Male_1_Run2.png").texture,
+                     CoreImage("gameAsset/Characters/Male/Male_1_Run3.png").texture,
+                     CoreImage("gameAsset/Characters/Male/Male_1_Run4.png").texture,],
+            "idle_left":[CoreImage("gameAsset/Characters/Male/Male_5_Idle0.png").texture],
+            "run_left":[CoreImage("gameAsset/Characters/Male/Male_5_Run0.png").texture,
+                     CoreImage("gameAsset/Characters/Male/Male_5_Run1.png").texture,
+                     CoreImage("gameAsset/Characters/Male/Male_5_Run2.png").texture,
+                     CoreImage("gameAsset/Characters/Male/Male_5_Run3.png").texture,
+                     CoreImage("gameAsset/Characters/Male/Male_5_Run4.png").texture,],
+        }
+        # self.IdleFrames=[CoreImage("gameAsset/Characters/Male/Male_0_Idle0.png").texture]
+        # self.RunFrames=[CoreImage("gameAsset/Characters/Male/Male_0_Run0.png").texture,
+        #              CoreImage("gameAsset/Characters/Male/Male_0_Run1.png").texture,
+        #              CoreImage("gameAsset/Characters/Male/Male_0_Run2.png").texture,
+        #              CoreImage("gameAsset/Characters/Male/Male_0_Run3.png").texture,
+        #              CoreImage("gameAsset/Characters/Male/Male_0_Run4.png").texture,]
+        self.CurrentFrames=self.animations[self.state]
+        self.texture=self.CurrentFrames[0]
+        Clock.schedule_interval(self.animate,0.12)
+    
+    def animate(self,dt):
+        self.frame_index+=1
+        if self.frame_index>=len(self.CurrentFrames):
+            self.frame_index=0
+        self.texture=self.CurrentFrames[self.frame_index]
+
+    def set_state(self,new_state):
+        if self.state==new_state:
+            return
+        self.state=new_state
+        self.frame_index=0
+        self.CurrentFrames=self.animations[self.state]
+        self.texture=self.CurrentFrames[0]
+    def update_direction(self,vx,vy):
+        if vx==0 and vy==0:
+            self.set_state("idle_"+self.facing)
+            return
+        
+        if abs(vx)>abs(vy):
+            if vx>0:
+                self.facing="right"
+                self.set_state("run_right")
+            else:
+                self.facing="left"
+                self.set_state("run_left")
+        else :
+            if vy>0:
+                self.facing="up"
+                self.set_state("run_up")
+            else:
+                self.facing="down"
+                self.set_state("run_down")
+
+
         
 
 class Enemy(Widget):
-    pass
+    
+    def __init__(self,**kwargs):
+        super().__init__(**kwargs)
+        self.attack_timer=0
+
 
 class HealthBar(Widget):
     health=NumericProperty(100)
@@ -899,6 +1243,12 @@ class GameUI(RelativeLayout):
         f"{self.parent.player.gun.current} "
         f"{gun['ammo']}/{gun['magazine']}")
         self.ammo_ratio=gun["ammo"]/gun["magazine"]
+
+class Obstacle(Widget):
+    source=StringProperty("")
+
+class Ground(Widget):
+    source=StringProperty("")    
 
 class UpgradePanel(RelativeLayout):
     pass

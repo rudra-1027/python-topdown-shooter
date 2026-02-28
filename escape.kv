@@ -1,12 +1,32 @@
-<Player>:
-    size_hint: None, None  
-    size: 25, 25
+<Game>:
+   
+<Ground>:
+    size_hint: None, None
     canvas:
         Color:
-            rgb: 0, 1, 1   # cyan color for this widget only
+            rgba: 1,1,1,1
         Rectangle:
-            size: self.size
+            source: root.source
             pos: self.pos
+            size: self.size
+<Obstacle>:
+    size_hint: None, None
+    canvas:
+        Color:
+            rgba: 1,1,1,1 
+        Rectangle:
+            source: root.source
+            pos: self.pos
+            size: self.size
+
+<Player>:
+    size_hint: None, None  
+    size: 256, 512
+    canvas:
+        Rectangle:
+            texture:root.texture
+            pos:self.pos
+            size:self.size
 
 <Enemy>:
     size_hint: None, None  
@@ -124,9 +144,306 @@
         PopMatrix
 
 
+   
+
+    
+
+
+
 <GameUI>:
+
     ammo_ratio: 1
     size_hint: 1,1
+    FloatLayout:
+        id: pause_menu
+        opacity: 0
+        disabled: True
+
+        canvas.before:
+            Color:
+                rgba: 0, 0, 0, 0.75
+            Rectangle:
+                size: self.size
+                pos: self.pos
+
+        BoxLayout:
+            orientation: "vertical"
+            spacing: 20
+            size_hint: None, None
+            size: 300, 300
+            pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+            Label:
+                text: "GAME PAUSED"
+                font_size: 28
+
+            Button:
+                text: "Resume"
+                on_release: root.parent.resume()
+
+            Button:
+                text: "Restart"
+                on_release: root.parent.restart()
+
+            Button:
+                text: "Quit"
+                on_release: app.stop()
+    Button:
+        id:pause_button
+        text: "II"
+        size_hint: None, None
+        size: 60, 60
+        pos_hint: {"right": 0.98, "top": 0.98}
+        font_size: 28
+        on_release: root.parent.pause()
+    
+
+    GunBar:
+        id: gun_ui
+        orientation: "horizontal"
+        size_hint: None,None
+        size: 260,50
+        spacing: 10
+        padding: 8
+        pos_hint: {"center_x":0.5,"y":0.02}
+        on_release: root.parent.changeWeapeon()
+
+        canvas.before:
+            Color:
+                rgba: 0,0,0,0.6
+            RoundedRectangle:
+                pos: self.pos
+                size: self.size
+                radius: [12]
+
+        Label:
+            id: gun_text
+            text: "assualt 30/30"
+            size_hint_x: None
+            width: 110
+            color: 1,1,1,1
+            font_size: 16
+            halign: "left"
+            valign: "middle"
+            text_size: self.size
+
+        Widget:
+            id: ammo_bar
+            size_hint_x: 1
+
+            canvas:
+                Color:
+                    rgba: 0.2,0.2,0.2,1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+
+                Color:
+                    rgba: 0.2,0.8,1,1
+                Rectangle:
+                    pos: self.pos
+                    size: self.width * root.ammo_ratio, self.height
+
+
+<GunBar@ButtonBehavior+BoxLayout>:
+
+<UpgradePanel>:
+    size_hint: 1,1
+    canvas.before:
+        Color:
+            rgba: 0,0,0,0.7
+        Rectangle:
+            size: self.size
+            pos: self.pos
+
+    BoxLayout:
+        orientation: "vertical"
+        spacing: 20
+        size_hint: None,None
+        size: 320,350
+        pos_hint: {"center_x":0.5,"center_y":0.5}
+
+        Label:
+            text: "Choose Upgrade"
+            font_size: 28
+            size_hint_y: None
+            height: 60
+
+        BoxLayout:
+            id: upgrade_box
+            orientation: "vertical"
+            spacing: 10
+
+
+<Enemy>:
+    size_hint: None, None  
+    size: 30, 30
+    canvas:
+        Color:
+            rgb: 1, 0, 0   # red enemy
+        Ellipse:
+            size: self.size
+            pos: self.pos
+
+<Attack>:
+    size_hint: None, None  
+    size: 15, 15
+    canvas:
+        Color:
+            rgb: 1, 1, 1   
+        Ellipse:
+            size: self.size
+            pos: self.pos
+
+
+            
+<Joystick>:
+    size_hint: None, None
+    size: 140, 140
+    canvas:
+        Color:
+            rgba: 1, 1, 1, 0.2
+        Ellipse:
+            pos: self.pos
+            size: self.size
+
+        Color:
+            rgba: 0, 1, 1, 0.8
+        Ellipse:
+            pos: self.center_x - 25, self.center_y - 25
+            size: 50, 50
+
+<AttackJoystick>:
+    size_hint: None, None
+    size: 140, 140
+    canvas:
+        Color:
+            rgba: 1, 1, 1, 0.2
+        Ellipse:
+            pos: self.pos
+            size: self.size
+
+        Color:
+            rgba: 0, 1, 1, 0.8
+        Ellipse:
+            pos: self.center_x - 25, self.center_y - 25
+            size: 50, 50
+<HealthBar>:
+    size_hint: None, None
+    size: 80, 8
+
+    canvas:
+        # background
+        Color:
+            rgba: 0.2, 0.2, 0.2, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+        # health bar
+        Color:
+            rgba: 1, 0, 0, 1
+        Rectangle:
+            pos: self.pos
+            size:
+                (self.width * (self.health / self.max_health), self.height)
+<PowerUp>:
+    size_hint: None, None
+    size: 24, 24
+
+    canvas:
+        Color:
+            rgba: root.color   # powerup color depends on type
+        Ellipse:
+            pos: self.pos
+            size: self.size
+
+    Label:
+        text: root.symbol     # icon text 
+        center: root.center
+        font_size: 16
+        color: 0, 0, 0, 1
+
+<Gun>:
+    size_hint: None, None
+    size: 30, 10
+
+    canvas.before:
+        PushMatrix
+        Rotate:
+            angle: self.angle
+            origin: self.center
+
+    canvas:
+        Color:
+            rgba: 0.2,0.2,0.2,1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+        Color:
+            rgba: 0.8,0.8,0.8,1
+        Rectangle:
+            pos: self.center_x, self.center_y - 2
+            size: 12,4
+
+    canvas.after:
+        PopMatrix
+
+
+   
+
+    
+
+
+
+<GameUI>:
+
+    ammo_ratio: 1
+    size_hint: 1,1
+    FloatLayout:
+        id: pause_menu
+        opacity: 0
+        disabled: True
+
+        canvas.before:
+            Color:
+                rgba: 0, 0, 0, 0.75
+            Rectangle:
+                size: self.size
+                pos: self.pos
+
+        BoxLayout:
+            orientation: "vertical"
+            spacing: 20
+            size_hint: None, None
+            size: 300, 300
+            pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+            Label:
+                text: "GAME PAUSED"
+                font_size: 28
+
+            Button:
+                text: "Resume"
+                on_release: root.parent.resume()
+
+            Button:
+                text: "Restart"
+                on_release: root.parent.restart()
+
+            Button:
+                text: "Quit"
+                on_release: app.stop()
+    Button:
+        id:pause_button
+        text: "II"
+        size_hint: None, None
+        size: 60, 60
+        pos_hint: {"right": 0.98, "top": 0.98}
+        font_size: 28
+        on_release: root.parent.pause()
+    
 
     GunBar:
         id: gun_ui
