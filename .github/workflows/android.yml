@@ -14,8 +14,10 @@ jobs:
       image: ghcr.io/kivy/buildozer:latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - name: Accept Android SDK Licenses
+        run: yes | sdkmanager --licenses
 
       - name: Build APK
         env:
