@@ -10,19 +10,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    container:
-      image: ghcr.io/kivy/buildozer:latest
-
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Remove old build cache
-        run: rm -rf .buildozer
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Build APK
-        env:
-          BUILDOZER_WARN_ON_ROOT: 0
-        run: buildozer android debug
+        uses: digreatbrian/buildozer-action@v2
+        with:
+          buildozer_version: stable
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
