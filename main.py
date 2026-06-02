@@ -33,8 +33,9 @@ from kivy.graphics import Translate
 from kivy.config import Config
 from pytmx import TiledMap
 
-from pytmx.util_pygame import load_pygame
-import pygame
+# from pytmx.util_pygame import load_pygame
+# import pygame
+
 
 import math
 import random
@@ -414,39 +415,54 @@ class Game(FloatLayout):
                 
     def loadMap(self, tmx_path):
 
-        pygame.init()
-
-        if not pygame.display.get_init():
-            pygame.display.init()
-
-        if pygame.display.get_surface() is None:
-            try:
-                pygame.display.set_mode((1, 1), flags=pygame.HIDDEN)
-            except TypeError:
-                pygame.display.set_mode((1, 1))
-
         if not os.path.isabs(tmx_path):
             base_dir = os.path.dirname(os.path.abspath(__file__))
             tmx_path = os.path.join(base_dir, tmx_path)
 
-        tmx_data = load_pygame(tmx_path)
+        tmx_data = TiledMap(tmx_path)
         self.tmx_data = tmx_data
 
         MAP_SCALE = 0.4
-        tile_w = tmx_data.tilewidth * MAP_SCALE    
-        tile_h = tmx_data.tileheight * MAP_SCALE   
 
-        
-        ground_row_step = tile_h -175
+        tile_w = tmx_data.tilewidth * MAP_SCALE
+        tile_h = tmx_data.tileheight * MAP_SCALE
 
-        
+        ground_row_step = tile_h - 175
         obstacle_row_step = tile_h - 168
 
         self.ground_layer.canvas.clear()
-        texture_cache = {}
         self.obstacle_rects = []
 
+        texture_cache = {}
+
+        def get_texture(gid):
+
+            if gid in texture_cache:
+                return texture_cache[gid]
+
+            try:
+
+                image_info = tmx_data.images[gid]
+
+                if image_info is None:
+                    return None
+
+                if isinstance(image_info, tuple):
+                    image_path = image_info[0]
+                else:
+                    image_path = image_info
+
+                texture = CoreImage(image_path).texture
+
+                texture_cache[gid] = texture
+
+                return texture
+
+            except Exception as e:
+                print("Texture load error:", gid, e)
+                return None
         def get_draw_pos(x, y, tex_w, tex_h, row_step):
+
             draw_x = x * tile_w
             draw_y = y * row_step
 
@@ -458,80 +474,119 @@ class Game(FloatLayout):
 
             return draw_x, draw_y
 
-        
         min_x = float("inf")
         min_y = float("inf")
         max_x = float("-inf")
         max_y = float("-inf")
 
+        # ---------- Calculate world bounds ----------
         for layer in tmx_data.visible_layers:
+
             if not hasattr(layer, "data"):
                 continue
-            is_obs = layer.name is not None and layer.name.lower() == "obstacles"
+
+            is_obs = (
+                layer.name
+                and layer.name.lower() == "obstacles"
+            )
+
             row_step = obstacle_row_step if is_obs else ground_row_step
 
             for x, y, gid in layer:
+
                 if gid == 0:
                     continue
-                surface = tmx_data.get_tile_image_by_gid(gid)
-                if surface is None:
+
+                texture = get_texture(gid)
+
+                if texture is None:
                     continue
-                tex_w = surface.get_width() * MAP_SCALE
-                tex_h = surface.get_height() * MAP_SCALE
-                draw_x, draw_y = get_draw_pos(x, y, tex_w, tex_h, row_step)
+
+                tex_w = texture.width * MAP_SCALE
+                tex_h = texture.height * MAP_SCALE
+
+                draw_x, draw_y = get_draw_pos(
+                    x,
+                    y,
+                    tex_w,
+                    tex_h,
+                    row_step
+                )
+
                 min_x = min(min_x, draw_x)
                 min_y = min(min_y, draw_y)
+
                 max_x = max(max_x, draw_x + tex_w)
                 max_y = max(max_y, draw_y + tex_h)
 
         self.world_w = max_x - min_x
         self.world_h = max_y - min_y
-        self.ground_layer.size = (self.world_w, self.world_h)
-        self.game_layer.size = (self.world_w, self.world_h)
+
+        self.ground_layer.size = (
+            self.world_w,
+            self.world_h
+        )
+
+        self.game_layer.size = (
+            self.world_w,
+            self.world_h
+        )
 
         offset_x = -min_x
         offset_y = -min_y
+
         self.offset_x = offset_x
         self.offset_y = offset_y
-        margin_x = tile_w*0.5
-        margin_y = tile_h*0.5
-        self.min_world_x = margin_x+50
-        self.min_world_y = margin_y+50
-        self.max_world_x = self.world_w-margin_x
-        self.max_world_y = self.world_h-margin_y
 
-        # DRAW
+        margin_x = tile_w * 0.5
+        margin_y = tile_h * 0.5
+
+        self.min_world_x = margin_x + 50
+        self.min_world_y = margin_y + 50
+
+        self.max_world_x = self.world_w - margin_x
+        self.max_world_y = self.world_h - margin_y
+
+        # ---------- Draw ----------
         with self.ground_layer.canvas:
 
             for layer in tmx_data.visible_layers:
+
                 if not hasattr(layer, "data"):
                     continue
 
                 is_obstacle_layer = (
-                    layer.name is not None
+                    layer.name
                     and layer.name.lower() == "obstacles"
                 )
-                row_step = obstacle_row_step if is_obstacle_layer else ground_row_step
+
+                row_step = (
+                    obstacle_row_step
+                    if is_obstacle_layer
+                    else ground_row_step
+                )
 
                 for x, y, gid in layer:
+
                     if gid == 0:
                         continue
-                    surface = tmx_data.get_tile_image_by_gid(gid)
-                    if surface is None:
+
+                    texture = get_texture(gid)
+
+                    if texture is None:
                         continue
 
-                    if gid not in texture_cache:
-                        w, h = surface.get_size()
-                        texture = Texture.create(size=(w, h), colorfmt="rgba")
-                        raw_data = pygame.image.tostring(surface, "RGBA", True)
-                        texture.blit_buffer(raw_data, colorfmt="rgba", bufferfmt="ubyte")
-                        texture_cache[gid] = texture
-
-                    texture = texture_cache[gid]
                     tex_w = texture.width * MAP_SCALE
                     tex_h = texture.height * MAP_SCALE
 
-                    draw_x, draw_y = get_draw_pos(x, y, tex_w, tex_h, row_step)
+                    draw_x, draw_y = get_draw_pos(
+                        x,
+                        y,
+                        tex_w,
+                        tex_h,
+                        row_step
+                    )
+
                     draw_x += offset_x
                     draw_y += offset_y
 
@@ -542,26 +597,17 @@ class Game(FloatLayout):
                     )
 
                     if is_obstacle_layer:
-                       
-                        coll_x = draw_x
-                        coll_y = draw_y
-                        coll_w = tex_w
-                        coll_h = tex_h
 
-                        self.obstacle_rects.append((
-                            coll_x, coll_y, coll_w, coll_h
-                        ))
+                        self.obstacle_rects.append(
+                            (
+                                draw_x,
+                                draw_y,
+                                tex_w,
+                                tex_h
+                            )
+                        )
 
-                        # Color(1, 0, 0, 1)
-                        # Line(
-                        #     rectangle=(coll_x, coll_y, coll_w, coll_h),
-                        #     width=1.5
-                        # )
-
-        # print("World bounds:")
-        # print(self.min_world_x, self.max_world_x)
-        # print(self.min_world_y, self.max_world_y)      
-    
+        print("Map Loaded Successfully")
     def rect_blocked(self, x, y, w, h):
 
         for ox, oy, ow, oh in self.obstacle_rects:
@@ -3507,15 +3553,15 @@ class Sound():
                 "sniper":{"shoot":SoundLoader.load("gameAsset/sound/sniper.mp3"),"reload":SoundLoader.load("gameAsset/sound/rifle_reload.mp3")}
             }
     gun_sound["assualt"]["shoot"].volume=0.15
-    gun_sound["assualt"]["reload"].volume=0.15
+    gun_sound["assualt"]["reload"].volume=0.3
 
     gun_sound["shotgun"]["shoot"].volume=0.15
-    gun_sound["shotgun"]["reload"].volume=0.15
+    gun_sound["shotgun"]["reload"].volume=0.3
     gun_sound["sniper"]["shoot"].volume=0.15
-    gun_sound["sniper"]["reload"].volume=0.15
+    gun_sound["sniper"]["reload"].volume=0.3
 
     gun_sound["machine"]["shoot"].volume=0.2
-    gun_sound["machine"]["reload"].volume=0.15
+    gun_sound["machine"]["reload"].volume=0.3
 
 
 
