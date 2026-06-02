@@ -16,7 +16,7 @@ fullscreen = 1
 
 android.api = 34
 android.minapi = 24
-android.sdk = 34
+
 android.ndk = 25b
 
 android.archs = arm64-v8a, armeabi-v7a
