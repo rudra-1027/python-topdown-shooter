@@ -1,33 +1,40 @@
 [app]
 
 title = Last Teen Standing
+
 package.name = lastteenstanding
 package.domain = org.ritik
 
 source.dir = .
+
 source.include_exts = py,kv,png,jpg,jpeg,atlas,wav,mp3,json,tmx
+
+source.exclude_dirs = .git,.github,__pycache__,bin,.buildozer
 
 version = 1.0
 
-requirements = python3,kivy,pillow,pytmx,sdl2,pygame
+requirements = python3==3.11.6,kivy==2.3.0,pillow,pytmx,pygame==2.5.2
 
 orientation = landscape
 fullscreen = 1
 
-android.api = 34
+android.api = 33
 android.minapi = 24
 
-android.sdk = 34
 android.ndk = 25b
 
-# IMPORTANT
-android.accept_sdk_license = True
-
-android.archs = arm64-v8a, armeabi-v7a
+android.archs = arm64-v8a
 
 android.permissions = INTERNET,VIBRATE,WAKE_LOCK
 
-source.exclude_dirs = .git,.github,__pycache__,bin,.buildozer
+android.accept_sdk_license = True
+
+# Uncomment when files exist
+# icon.filename = gameAsset/icon/icon.png
+# presplash.filename = gameAsset/icon/presplash.png
+
+# Optional
+android.allow_backup = True
 
 [buildozer]
 
