@@ -9,7 +9,7 @@ source.include_exts = py,kv,png,jpg,jpeg,atlas,wav,mp3,json,tmx
 
 version = 1.0
 
-requirements = python3,kivy,pillow,pytmx,pygame
+requirements = python3,kivy,pillow,pytmx
 
 orientation = landscape
 fullscreen = 1
