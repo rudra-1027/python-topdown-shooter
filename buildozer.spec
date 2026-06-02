@@ -17,14 +17,15 @@ fullscreen = 1
 android.api = 34
 android.minapi = 24
 
+android.sdk = 34
 android.ndk = 25b
+
+# IMPORTANT
+android.accept_sdk_license = True
 
 android.archs = arm64-v8a, armeabi-v7a
 
 android.permissions = INTERNET,VIBRATE,WAKE_LOCK
-
-#icon.filename = gameAsset/icon/icon.png
-#presplash.filename = gameAsset/icon/presplash.png
 
 source.exclude_dirs = .git,.github,__pycache__,bin,.buildozer
 
