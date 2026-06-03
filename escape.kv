@@ -1,4 +1,7 @@
 #:import Window kivy.core.window.Window
+#:import dp kivy.metrics.dp
+#:import sp kivy.metrics.sp
+
 <MainMenu>:
 
     # ── BACKGROUND IMAGE ──
@@ -23,10 +26,10 @@
     BoxLayout:
         orientation: 'vertical'
         size_hint: None, 1
-        width: 340
+        width: min(dp(340), Window.width * 0.88)
         pos_hint: {'x': 0, 'y': 0}
-        spacing: 8
-        padding: [28, 36, 28, 28]
+        spacing: dp(8)
+        padding: [dp(28), dp(36), dp(28), dp(28)]
 
         canvas.before:
             Color:
@@ -37,31 +40,29 @@
             Color:
                 rgba: 0.91, 0.75, 0.29, 0.4
             Rectangle:
-                pos: self.right - 2, self.y
-                size: 2, self.height
+                pos: self.right - dp(2), self.y
+                size: dp(2), self.height
             Color:
                 rgba: 0.91, 0.75, 0.29, 1
-            
-        # ── TITLE ──
-        
 
+        # ── TITLE ──
         Label:
             text: 'LAST TEEN STANDING'
-            font_size: 28
+            font_size: sp(22)
             bold: True
             color: 0.91, 0.9, 0.96, 1
             size_hint_y: None
-            height: 60
+            height: dp(60)
             halign: 'left'
             valign: 'middle'
             text_size: self.size
 
         Label:
             text: 'MAIN MENU'
-            font_size: 10
+            font_size: sp(10)
             color: 0.42, 0.39, 0.54, 1
             size_hint_y: None
-            height: 20
+            height: dp(20)
             halign: 'left'
             valign: 'middle'
             text_size: self.size
@@ -69,7 +70,7 @@
         # ── DIVIDER ──
         Widget:
             size_hint_y: None
-            height: 1
+            height: dp(1)
             canvas:
                 Color:
                     rgba: 1, 1, 1, 0.07
@@ -79,14 +80,14 @@
 
         Widget:
             size_hint_y: None
-            height: 6
+            height: dp(6)
 
         # ── STATS ROW ──
         BoxLayout:
             orientation: 'horizontal'
             size_hint_y: None
-            height: 64
-            spacing: 8
+            height: dp(64)
+            spacing: dp(8)
 
             BoxLayout:
                 orientation: 'vertical'
@@ -96,20 +97,20 @@
                     RoundedRectangle:
                         pos: self.pos
                         size: self.size
-                        radius: [6]
+                        radius: [dp(6)]
                 Label:
                     text: 'BEST SCORE'
-                    font_size: 9
+                    font_size: sp(9)
                     bold: True
                     color: 0.5, 0.45, 0.65, 1
                     size_hint_y: None
-                    height: 18
+                    height: dp(18)
                     halign: 'center'
                     text_size: self.size
                 Label:
                     id: best_score_label
                     text: '0'
-                    font_size: 18
+                    font_size: sp(18)
                     bold: True
                     color: 0.91, 0.75, 0.29, 1
                     halign: 'center'
@@ -123,20 +124,20 @@
                     RoundedRectangle:
                         pos: self.pos
                         size: self.size
-                        radius: [6]
+                        radius: [dp(6)]
                 Label:
                     text: 'BEST WAVE'
-                    font_size: 9
+                    font_size: sp(9)
                     bold: True
                     color: 0.5, 0.45, 0.65, 1
                     size_hint_y: None
-                    height: 18
+                    height: dp(18)
                     halign: 'center'
                     text_size: self.size
                 Label:
                     id: best_wave_label
                     text: '0'
-                    font_size: 18
+                    font_size: sp(18)
                     bold: True
                     color: 0.85, 0.8, 1, 1
                     halign: 'center'
@@ -144,19 +145,19 @@
 
         Widget:
             size_hint_y: None
-            height: 14
+            height: dp(14)
 
         # ── NEW GAME BUTTON (gold) ──
         Button:
             text: 'NEW GAME'
             size_hint_y: None
-            height: 54
-            font_size: 14
+            height: dp(54)
+            font_size: sp(14)
             bold: True
             background_normal: ''
             background_color: 0, 0, 0, 0
             color: 0.15, 0.12, 0.05, 1
-            on_release: 
+            on_release:
                 root.start_new_game()
                 app.play_click()
             canvas.before:
@@ -165,26 +166,26 @@
                 RoundedRectangle:
                     pos: self.pos
                     size: self.size
-                    radius: [8]
+                    radius: [dp(8)]
                 Color:
                     rgba: 1, 1, 1, 0.12
                 RoundedRectangle:
-                    pos: self.x + 4, self.top - 10
-                    size: self.width - 8, 8
-                    radius: [6]
+                    pos: self.x + dp(4), self.top - dp(10)
+                    size: self.width - dp(8), dp(8)
+                    radius: [dp(6)]
 
         # ── CONTINUE BUTTON ──
         Button:
             id: continue_btn
             text: 'CONTINUE FROM WAVE'
             size_hint_y: None
-            height: 54
-            font_size: 13
+            height: dp(54)
+            font_size: sp(13)
             bold: True
             background_normal: ''
             background_color: 0, 0, 0, 0
             color: 0.88, 0.86, 0.94, 1
-            on_release: 
+            on_release:
                 root.continue_game()
                 app.play_click()
             canvas.before:
@@ -193,54 +194,51 @@
                 RoundedRectangle:
                     pos: self.pos
                     size: self.size
-                    radius: [8]
+                    radius: [dp(8)]
                 Color:
                     rgba: 1, 1, 1, 0.06
                 Line:
-                    rounded_rectangle: self.x, self.y, self.width, self.height, 8
-                    width: 1
+                    rounded_rectangle: self.x, self.y, self.width, self.height, dp(8)
+                    width: dp(1)
                 Color:
                     rgba: 0.91, 0.75, 0.29, 0.7
-                
 
         # ── QUIT BUTTON ──
         Button:
             text: 'QUIT'
             size_hint_y: None
-            height: 54
-            font_size: 14
+            height: dp(54)
+            font_size: sp(14)
             bold: True
             background_normal: ''
             background_color: 0, 0, 0, 0
             color: 0.90, 0.38, 0.38, 1
-            on_release: 
+            on_release:
                 app.play_click()
                 app.stop()
-                
             canvas.before:
                 Color:
                     rgba: 0.18, 0.07, 0.07, 1
                 RoundedRectangle:
                     pos: self.pos
                     size: self.size
-                    radius: [8]
+                    radius: [dp(8)]
                 Color:
                     rgba: 0.80, 0.22, 0.22, 0.25
                 Line:
-                    rounded_rectangle: self.x, self.y, self.width, self.height, 8
-                    width: 1
+                    rounded_rectangle: self.x, self.y, self.width, self.height, dp(8)
+                    width: dp(1)
                 Color:
                     rgba: 0.85, 0.25, 0.25, 0.8
-                
 
         Widget:
 
         Label:
             text: 'v1.0.0'
-            font_size: 9
+            font_size: sp(9)
             color: 0.25, 0.22, 0.32, 1
             size_hint_y: None
-            height: 18
+            height: dp(18)
             halign: 'left'
             valign: 'middle'
             text_size: self.size
@@ -269,7 +267,7 @@
 
 <Player>:
     size_hint: None, None
-    size: 100, 100
+    size: dp(100), dp(100)
     canvas:
         Rectangle:
             texture: root.texture
@@ -278,7 +276,7 @@
 
 <Enemy>:
     size_hint: None, None
-    size: 30, 30
+    size: dp(30), dp(30)
     canvas:
         Color:
             rgba: root.color
@@ -289,7 +287,7 @@
 
 <Effect>:
     size_hint: None, None
-    size: 100, 100
+    size: dp(100), dp(100)
     canvas:
         Color:
             rgba: 1,1,1,1
@@ -300,13 +298,13 @@
 
 <DamageNumber@Label>:
     size_hint: None, None
-    font_size: 20
+    font_size: sp(20)
     bold: True
     color: 1, 0.24, 0.24, 1
 
 <Attack>:
     size_hint: None, None
-    size: 15, 15
+    size: dp(15), dp(15)
     canvas:
         Color:
             rgba: 1,1,1,1
@@ -318,7 +316,7 @@
 # ── JOYSTICK (movement) ──────────────────────────────
 <Joystick>:
     size_hint: None, None
-    size: 150, 150
+    size: dp(150), dp(150)
     canvas:
         Color:
             rgba: 0, 0, 0, 0.45
@@ -329,37 +327,37 @@
             rgba: 0, 1, 0.8, 0.30
         Line:
             ellipse: self.x, self.y, self.width, self.height
-            width: 2
+            width: dp(2)
         Color:
             rgba: 0, 1, 0.8, 0.10
         Line:
-            points: self.center_x - 58, self.center_y, self.center_x + 58, self.center_y
-            width: 1
+            points: self.center_x - dp(58), self.center_y, self.center_x + dp(58), self.center_y
+            width: dp(1)
         Color:
             rgba: 0, 1, 0.8, 0.10
         Line:
-            points: self.center_x, self.center_y - 58, self.center_x, self.center_y + 58
-            width: 1
+            points: self.center_x, self.center_y - dp(58), self.center_x, self.center_y + dp(58)
+            width: dp(1)
         Color:
             rgba: 0, 1, 0.8, 0.15
         Ellipse:
-            pos: self.center_x - 32, self.center_y - 32
-            size: 64, 64
+            pos: self.center_x - dp(32), self.center_y - dp(32)
+            size: dp(64), dp(64)
         Color:
             rgba: 0.04, 0.10, 0.14, 0.95
         Ellipse:
-            pos: root.knob_x - 26, root.knob_y - 26
-            size: 52, 52
+            pos: root.knob_x - dp(26), root.knob_y - dp(26)
+            size: dp(52), dp(52)
         Color:
             rgba: 0, 1, 0.8, 0.90
         Line:
-            ellipse: root.knob_x - 26, root.knob_y - 26, 52, 52
-            width: 1.8
+            ellipse: root.knob_x - dp(26), root.knob_y - dp(26), dp(52), dp(52)
+            width: dp(1.8)
 
 # ── ATTACK JOYSTICK (fire) ───────────────────────────
 <AttackJoystick>:
     size_hint: None, None
-    size: 150, 150
+    size: dp(150), dp(150)
     canvas:
         Color:
             rgba: 0, 0, 0, 0.45
@@ -370,170 +368,161 @@
             rgba: 1, 0.24, 0.24, 0.35
         Line:
             ellipse: self.x, self.y, self.width, self.height
-            width: 2
+            width: dp(2)
         Color:
             rgba: 1, 0.24, 0.24, 0.10
         Line:
-            points: self.center_x - 58, self.center_y, self.center_x + 58, self.center_y
-            width: 1
+            points: self.center_x - dp(58), self.center_y, self.center_x + dp(58), self.center_y
+            width: dp(1)
         Color:
             rgba: 1, 0.24, 0.24, 0.10
         Line:
-            points: self.center_x, self.center_y - 58, self.center_x, self.center_y + 58
-            width: 1
+            points: self.center_x, self.center_y - dp(58), self.center_x, self.center_y + dp(58)
+            width: dp(1)
         Color:
             rgba: 1, 0.24, 0.24, 0.18
         Ellipse:
-            pos: self.center_x - 32, self.center_y - 32
-            size: 64, 64
+            pos: self.center_x - dp(32), self.center_y - dp(32)
+            size: dp(64), dp(64)
         Color:
             rgba: 0.14, 0.04, 0.04, 0.95
         Ellipse:
-            pos: root.knob_x - 26, root.knob_y - 26
-            size: 52, 52
+            pos: root.knob_x - dp(26), root.knob_y - dp(26)
+            size: dp(52), dp(52)
         Color:
             rgba: 1, 0.24, 0.24, 0.90
         Line:
-            ellipse: root.knob_x - 26, root.knob_y - 26, 52, 52
-            width: 1.8
+            ellipse: root.knob_x - dp(26), root.knob_y - dp(26), dp(52), dp(52)
+            width: dp(1.8)
 
 <HealthBar>:
     size_hint: None, None
-    size: 90, 10
+    size: dp(90), dp(10)
     canvas:
         Color:
             rgba: 0.08, 0.08, 0.10, 0.92
         RoundedRectangle:
             pos: self.pos
             size: self.size
-            radius: [5]
+            radius: [dp(5)]
         Color:
             rgba: 0.3, 0.05, 0.05, 0.8
         Line:
-            rounded_rectangle: self.x, self.y, self.width, self.height, 5
-            width: 1
+            rounded_rectangle: self.x, self.y, self.width, self.height, dp(5)
+            width: dp(1)
         Color:
             rgba: (1, 0.18, 0.18, 1) if self.health > 0 else (0, 0, 0, 0)
         RoundedRectangle:
             pos: self.pos
             size: self.width * min(1, self.health / self.max_health), self.height
-            radius: [5]
-            
+            radius: [dp(5)]
+
 <PlayerHealthBar>:
     size_hint: None, None
-    size: 260, 80
+    size: min(dp(260), Window.width * 0.55), dp(80)
 
     canvas.before:
-        # Card background
         Color:
             rgba: 0.04, 0.05, 0.06, 0.94
         RoundedRectangle:
             pos: self.pos
             size: self.size
-            radius: [14]
+            radius: [dp(14)]
         Color:
             rgba: 1, 1, 1, 0.07
         Line:
-            rounded_rectangle: self.x, self.y, self.width, self.height, 14
-            width: 1
+            rounded_rectangle: self.x, self.y, self.width, self.height, dp(14)
+            width: dp(1)
 
-        # Heart icon box  (top-left area)
         Color:
             rgba: 0.9, 0.21, 0.21, 0.18
         RoundedRectangle:
-            pos: self.x + 12, self.y + 44
-            size: 28, 28
-            radius: [8]
+            pos: self.x + dp(12), self.y + dp(44)
+            size: dp(28), dp(28)
+            radius: [dp(8)]
         Color:
             rgba: 1, 1, 1, 1
         Rectangle:
             source: "gameAsset/Characters/player_icon.png"
-            pos: self.x + 16, self.y + 48
-            size: 20, 20
+            pos: self.x + dp(16), self.y + dp(48)
+            size: dp(20), dp(20)
 
         Color:
             rgba: 0.9, 0.21, 0.21, 0.38
         Line:
-            rounded_rectangle: self.x + 12, self.y + 44, 28, 28, 8
-            width: 1
+            rounded_rectangle: self.x + dp(12), self.y + dp(44), dp(28), dp(28), dp(8)
+            width: dp(1)
 
-
-        # HP bar track
         Color:
             rgba: 1, 1, 1, 0.07
         RoundedRectangle:
-            pos: self.x + 12, self.y + 30
-            size: self.width - 24, 8
-            radius: [4]
+            pos: self.x + dp(12), self.y + dp(30)
+            size: self.width - dp(24), dp(8)
+            radius: [dp(4)]
 
-        # HP bar fill
         Color:
             rgba: (0.9, 0.21, 0.21, 1) if self.health > 0 else (0, 0, 0, 0)
         RoundedRectangle:
-            pos: self.x + 12, self.y + 30
-            size: (0, 0) if self.health <= 0 else ((self.width - 24) * max(0, min(1, self.health / self.max_health)), 8)
-            radius: [4]
+            pos: self.x + dp(12), self.y + dp(30)
+            size: (0, 0) if self.health <= 0 else ((self.width - dp(24)) * max(0, min(1, self.health / self.max_health)), dp(8))
+            radius: [dp(4)]
 
-        # Shimmer highlight on fill
         Color:
             rgba: (1, 1, 1, 0.18) if self.health > 0 else (0, 0, 0, 0)
         RoundedRectangle:
-            pos: self.x + 18, self.y + 34
-            size:(0, 0) if self.health <= 0 else (max(0, (self.width - 36) * max(0, min(1, self.health / self.max_health))), 2)       
-            radius: [2]
+            pos: self.x + dp(18), self.y + dp(34)
+            size: (0, 0) if self.health <= 0 else (max(0, (self.width - dp(36)) * max(0, min(1, self.health / self.max_health))), dp(2))
+            radius: [dp(2)]
 
-        # Divider line
         Color:
             rgba: 1, 1, 1, 0.05
         Rectangle:
-            pos: self.x + 12, self.y + 22
-            size: self.width - 24, 1
+            pos: self.x + dp(12), self.y + dp(22)
+            size: self.width - dp(24), dp(1)
 
-    # "PLAYER" label
     Label:
         text: "TEEN"
-        font_size: 11
+        font_size: sp(11)
         bold: True
         color: 1, 1, 1, 0.55
-        pos: root.x + 48, root.y + 44
-        size: 100, 28
+        pos: root.x + dp(48), root.y + dp(44)
+        size: dp(100), dp(28)
         halign: "left"
         valign: "middle"
         text_size: self.size
 
-    # HP number
     Label:
         text: f"{max(0, int(root.health))} / {int(root.max_health)}"
-        font_size: 13
+        font_size: sp(13)
         bold: True
         color: 1, 1, 1, 1
-        pos: root.right - 80, root.y + 44
-        size: 68, 28
+        pos: root.right - dp(80), root.y + dp(44)
+        size: dp(68), dp(28)
         halign: "right"
         valign: "middle"
         text_size: self.size
 
-    # Status effect text
     Label:
         id: status_label
         text: root.status_text
-        font_size: 14
+        font_size: sp(14)
         bold: True
         color: root.status_color
-        pos: root.x + 24, root.y + 4
-        size: root.width - 36, 20
+        pos: root.x + dp(24), root.y + dp(4)
+        size: root.width - dp(36), dp(20)
         halign: "left"
         valign: "middle"
         text_size: self.size
+
 <PowerUp>:
     size_hint: None, None
-    size: 28, 28
+    size: dp(28), dp(28)
     canvas:
         Color:
             rgba: root.color[0], root.color[1], root.color[2], 0.28
         Ellipse:
-            pos: self.x - 5, self.y - 5
-            size: self.width + 10, self.height + 10
+            pos: self.x - dp(5), self.y - dp(5)
+            size: self.width + dp(10), self.height + dp(10)
         Color:
             rgba: root.color
         Ellipse:
@@ -543,18 +532,18 @@
         Color:
             rgba: 1, 1, 1, 0.20
         Ellipse:
-            pos: self.center_x - 8, self.center_y - 2
-            size: 10, 6
+            pos: self.center_x - dp(8), self.center_y - dp(2)
+            size: dp(10), dp(6)
     Label:
         text: root.symbol
         center: root.center
-        font_size: 15
+        font_size: sp(15)
         bold: True
         color: 0, 0, 0, 0.9
 
 <Gun>:
     size_hint: None, None
-    size: 34, 12
+    size: dp(34), dp(12)
     canvas.before:
         PushMatrix
         Rotate:
@@ -566,21 +555,20 @@
         RoundedRectangle:
             pos: self.pos
             size: self.size
-            radius: [3]
+            radius: [dp(3)]
         Color:
             rgba: 0.50, 0.62, 0.72, 1
         RoundedRectangle:
-            pos: self.center_x, self.center_y - 2
-            size: 14, 4
-            radius: [2]
+            pos: self.center_x, self.center_y - dp(2)
+            size: dp(14), dp(4)
+            radius: [dp(2)]
         Color:
             rgba: 0, 1, 0.8, 0.85
         Rectangle:
-            pos: self.right - 3, self.center_y - 2
-            size: 3, 4
+            pos: self.right - dp(3), self.center_y - dp(2)
+            size: dp(3), dp(4)
     canvas.after:
         PopMatrix
-
 
 
 <GameUI>:
@@ -595,7 +583,6 @@
         opacity: 0
         disabled: True
 
-        # ── BACKGROUND IMAGE ──
         Image:
             source: 'gameAsset/game_menu/menu.png'
             allow_stretch: True
@@ -603,7 +590,6 @@
             size_hint: 1, 1
             pos_hint: {'x': 0, 'y': 0}
 
-        # ── DARK OVERLAY (as a Widget child, not canvas.before on FloatLayout) ──
         Widget:
             size_hint: 1, 1
             pos_hint: {'x': 0, 'y': 0}
@@ -618,10 +604,10 @@
         BoxLayout:
             orientation: 'vertical'
             size_hint: None, 1
-            width: 320
+            width: min(dp(320), Window.width * 0.88)
             pos_hint: {'x': 0, 'y': 0}
-            spacing: 6
-            padding: [28, 32, 28, 24]
+            spacing: dp(6)
+            padding: [dp(28), dp(32), dp(28), dp(24)]
 
             canvas.before:
                 Color:
@@ -632,39 +618,36 @@
                 Color:
                     rgba: 0.91, 0.75, 0.29, 0.4
                 Rectangle:
-                    pos: self.right - 2, self.y
-                    size: 2, self.height
+                    pos: self.right - dp(2), self.y
+                    size: dp(2), self.height
                 Color:
                     rgba: 0.91, 0.75, 0.29, 1
-                
 
             Label:
                 text: 'LAST TEEN STANDING'
-                font_size: 11
+                font_size: sp(11)
                 bold: True
                 color: 0.91, 0.75, 0.29, 1
                 size_hint_y: None
-                height: 20
+                height: dp(20)
                 halign: 'left'
                 valign: 'middle'
                 text_size: self.size
 
             Label:
                 text: 'PAUSED'
-                font_size: 26
+                font_size: sp(26)
                 bold: True
                 color: 0.91, 0.9, 0.96, 1
                 size_hint_y: None
-                height: 38
+                height: dp(38)
                 halign: 'left'
                 valign: 'middle'
                 text_size: self.size
 
-            
-
             Widget:
                 size_hint_y: None
-                height: 1
+                height: dp(1)
                 canvas:
                     Color:
                         rgba: 1, 1, 1, 0.07
@@ -674,13 +657,13 @@
 
             Widget:
                 size_hint_y: None
-                height: 8
+                height: dp(8)
 
             BoxLayout:
                 orientation: 'horizontal'
                 size_hint_y: None
-                height: 64
-                spacing: 8
+                height: dp(64)
+                spacing: dp(8)
 
                 BoxLayout:
                     orientation: 'vertical'
@@ -690,20 +673,20 @@
                         RoundedRectangle:
                             pos: self.pos
                             size: self.size
-                            radius: [6]
+                            radius: [dp(6)]
                     Label:
                         text: 'WAVE'
-                        font_size: 9
+                        font_size: sp(9)
                         bold: True
                         color: 0.5, 0.45, 0.65, 1
                         size_hint_y: None
-                        height: 18
+                        height: dp(18)
                         halign: 'center'
                         text_size: self.size
                     Label:
                         id: stat_wave
                         text: '1'
-                        font_size: 20
+                        font_size: sp(20)
                         bold: True
                         color: 0.85, 0.8, 1, 1
                         halign: 'center'
@@ -717,20 +700,20 @@
                         RoundedRectangle:
                             pos: self.pos
                             size: self.size
-                            radius: [6]
+                            radius: [dp(6)]
                     Label:
                         text: 'SCORE'
-                        font_size: 9
+                        font_size: sp(9)
                         bold: True
                         color: 0.5, 0.45, 0.65, 1
                         size_hint_y: None
-                        height: 18
+                        height: dp(18)
                         halign: 'center'
                         text_size: self.size
                     Label:
                         id: stat_score
                         text: '0'
-                        font_size: 20
+                        font_size: sp(20)
                         bold: True
                         color: 0.85, 0.8, 1, 1
                         halign: 'center'
@@ -738,18 +721,18 @@
 
             Widget:
                 size_hint_y: None
-                height: 16
+                height: dp(16)
 
             Button:
                 text: 'RESUME'
                 size_hint_y: None
-                height: 54
-                font_size: 14
+                height: dp(54)
+                font_size: sp(14)
                 bold: True
                 background_normal: ''
                 background_color: 0, 0, 0, 0
                 color: 0.15, 0.12, 0.05, 1
-                on_release: 
+                on_release:
                     root.parent.resume()
                     root.parent.play_click()
                 canvas.before:
@@ -758,24 +741,24 @@
                     RoundedRectangle:
                         pos: self.pos
                         size: self.size
-                        radius: [8]
+                        radius: [dp(8)]
                     Color:
                         rgba: 1, 1, 1, 0.12
                     RoundedRectangle:
-                        pos: self.x + 4, self.top - 10
-                        size: self.width - 8, 8
-                        radius: [6]
+                        pos: self.x + dp(4), self.top - dp(10)
+                        size: self.width - dp(8), dp(8)
+                        radius: [dp(6)]
 
             Button:
                 text: 'RESTART'
                 size_hint_y: None
-                height: 54
-                font_size: 14
+                height: dp(54)
+                font_size: sp(14)
                 bold: True
                 background_normal: ''
                 background_color: 0, 0, 0, 0
                 color: 0.88, 0.86, 0.94, 1
-                on_release: 
+                on_release:
                     root.parent.restart()
                     root.parent.play_click()
                 canvas.before:
@@ -784,25 +767,25 @@
                     RoundedRectangle:
                         pos: self.pos
                         size: self.size
-                        radius: [8]
+                        radius: [dp(8)]
                     Color:
                         rgba: 1, 1, 1, 0.06
                     Line:
-                        rounded_rectangle: self.x, self.y, self.width, self.height, 8
-                        width: 1
+                        rounded_rectangle: self.x, self.y, self.width, self.height, dp(8)
+                        width: dp(1)
                     Color:
                         rgba: 0.91, 0.75, 0.29, 0.7
-                    
+
             Button:
                 text: 'QUIT TO MENU'
                 size_hint_y: None
-                height: 54
-                font_size: 14
+                height: dp(54)
+                font_size: sp(14)
                 bold: True
                 background_normal: ''
                 background_color: 0, 0, 0, 0
                 color: 0.90, 0.38, 0.38, 1
-                on_release: 
+                on_release:
                     root.parent.quit_to_menu()
                     root.parent.play_click()
                 canvas.before:
@@ -811,85 +794,71 @@
                     RoundedRectangle:
                         pos: self.pos
                         size: self.size
-                        radius: [8]
+                        radius: [dp(8)]
                     Color:
                         rgba: 0.80, 0.22, 0.22, 0.25
                     Line:
-                        rounded_rectangle: self.x, self.y, self.width, self.height, 8
-                        width: 1
+                        rounded_rectangle: self.x, self.y, self.width, self.height, dp(8)
+                        width: dp(1)
                     Color:
                         rgba: 0.85, 0.25, 0.25, 0.8
-                    
 
             Widget:
 
             Label:
                 text: 'v1.0.0  ·  WAVE IN PROGRESS'
-                font_size: 9
+                font_size: sp(9)
                 color: 0.25, 0.22, 0.32, 1
                 size_hint_y: None
-                height: 18
+                height: dp(18)
                 halign: 'left'
                 valign: 'middle'
                 text_size: self.size
+
     # ─────────────────────────────────────────────
     # PAUSE BUTTON
     # ─────────────────────────────────────────────
     Button:
         id: pause_button
         text: "II"
-
         size_hint: None, None
-        size: 50, 50
-
+        size: dp(50), dp(50)
         pos_hint: {"right": 0.985, "top": 0.985}
-
-        font_size: 16
+        font_size: sp(16)
         bold: True
-
         background_normal: ""
         background_color: 0,0,0,0
-
         color: 1,1,1,0.92
-
-        on_release: 
+        on_release:
             root.parent.pause()
             root.parent.play_click()
-
         canvas.before:
             Color:
                 rgba: 0.12,0.13,0.16,0.96
             RoundedRectangle:
                 pos: self.pos
                 size: self.size
-                radius: [12]
-
+                radius: [dp(12)]
             Color:
                 rgba: 1,1,1,0.05
             Line:
-                rounded_rectangle: self.x, self.y, self.width, self.height, 12
-                width: 1
+                rounded_rectangle: self.x, self.y, self.width, self.height, dp(12)
+                width: dp(1)
 
     # ─────────────────────────────────────────────
     # WEAPON BUTTON
     # ─────────────────────────────────────────────
     Button:
-        id: weapon_button 
+        id: weapon_button
         text: "W"
-
         size_hint: None, None
-        size: 50, 50
-
+        size: dp(50), dp(50)
         pos_hint: {"right": 0.985, "top": 0.89}
-
-        font_size: 18
+        font_size: sp(18)
         bold: True
-
         background_normal: ""
         background_color: 0,0,0,0
-
         color: 0.92,0.82,0.58,1
-
         on_release:
             root.parent.weapon_menu.open_menu(list(root.parent.player.guns.keys()), self.center_x, self.center_y)
             root.parent.play_click()
@@ -899,89 +868,71 @@
             RoundedRectangle:
                 pos: self.pos
                 size: self.size
-                radius: [12]
-
+                radius: [dp(12)]
             Color:
                 rgba: 0.92,0.82,0.58,0.15
             Line:
-                rounded_rectangle: self.x, self.y, self.width, self.height, 12
-                width: 1
+                rounded_rectangle: self.x, self.y, self.width, self.height, dp(12)
+                width: dp(1)
 
     # ─────────────────────────────────────────────
     # GUN BAR
     # ─────────────────────────────────────────────
     GunBar:
         id: gun_ui
-
         orientation: "horizontal"
-
         size_hint: None, None
-        size: 320, 64
-
-        spacing: 12
-        padding: [14,10]
-
+        size: min(dp(320), Window.width * 0.88), dp(64)
+        spacing: dp(12)
+        padding: [dp(14), dp(10)]
         pos_hint: {"center_x": 0.5, "y": 0.016}
-
         on_release: root.parent.player.gun.startReload()
-
         canvas.before:
             Color:
                 rgba: 0.10,0.11,0.13,0.96
             RoundedRectangle:
                 pos: self.pos
                 size: self.size
-                radius: [14]
-
+                radius: [dp(14)]
             Color:
                 rgba: 1,1,1,0.05
             Line:
-                rounded_rectangle: self.x, self.y, self.width, self.height, 14
-                width: 1
+                rounded_rectangle: self.x, self.y, self.width, self.height, dp(14)
+                width: dp(1)
 
-        # ── ICON BOX ──
-        
         BoxLayout:
             size_hint_x: None
-            width: 40
-            padding: [4, 4, 4, 4]
-
+            width: dp(40)
+            padding: [dp(4), dp(4), dp(4), dp(4)]
             canvas.before:
                 Color:
                     rgba: 1,1,1,0.04
                 RoundedRectangle:
                     pos: self.pos
                     size: self.size
-                    radius: [8]
-
+                    radius: [dp(8)]
             Image:
                 id: gun_icon
-
                 source: "gameAsset/gun/ak.png"
-
                 size_hint: 1, 1
-                
-                
 
         BoxLayout:
             orientation: "vertical"
             size_hint_x: None
-            width: 110
-
+            width: dp(110)
             Label:
                 id: gun_text
                 text: "ASSAULT"
-                font_size: 13
+                font_size: sp(13)
                 bold: True
                 color: 1,1,1,0.96
                 halign: "left"
                 valign: "middle"
                 text_size: self.size
-
             Label:
                 id: ammo_text
                 text: "30 / 30"
-                font_size: 11
+                font_size: sp(11)
                 bold: True
                 color: 0.82,0.74,0.55,0.85
                 halign: "left"
@@ -990,30 +941,26 @@
 
         BoxLayout:
             orientation: "vertical"
-            spacing: 5
-
+            spacing: dp(5)
             Widget:
                 size_hint_y: None
-                height: 8
-
+                height: dp(8)
                 canvas:
                     Color:
                         rgba: 0.18,0.18,0.20,1
                     RoundedRectangle:
                         pos: self.pos
                         size: self.size
-                        radius: [4]
-
+                        radius: [dp(4)]
                     Color:
                         rgba: 0.88,0.77,0.50,1
                     RoundedRectangle:
                         pos: self.pos
                         size: self.width * root.ammo_ratio, self.height
-                        radius: [4]
-
+                        radius: [dp(4)]
             Label:
                 text: "TAP TO RELOAD"
-                font_size: 9
+                font_size: sp(9)
                 bold: True
                 color: 1,1,1,0.35
                 halign: "center"
@@ -1025,109 +972,83 @@
     # ─────────────────────────────────────────────
     BoxLayout:
         id: top_hud
-
         orientation: "horizontal"
-
         size_hint: None, None
-        size: 320, 58
-
-        spacing: 8
-        padding: [10,8]
-
+        size: min(dp(320), Window.width * 0.72), dp(58)
+        spacing: dp(8)
+        padding: [dp(10), dp(8)]
         pos_hint: {"center_x": 0.5, "top": 0.985}
-
         canvas.before:
             Color:
                 rgba: 0.10,0.11,0.13,0.96
             RoundedRectangle:
                 pos: self.pos
                 size: self.size
-                radius: [12]
-
+                radius: [dp(12)]
             Color:
                 rgba: 1,1,1,0.05
             Line:
-                rounded_rectangle: self.x, self.y, self.width, self.height, 12
-                width: 1
+                rounded_rectangle: self.x, self.y, self.width, self.height, dp(12)
+                width: dp(1)
 
-        # Wave
         BoxLayout:
             orientation: "vertical"
-
             canvas.before:
                 Color:
                     rgba: 1,1,1,0.025
                 RoundedRectangle:
                     pos: self.pos
                     size: self.size
-                    radius: [8]
-
+                    radius: [dp(8)]
             Label:
                 text: "WAVE"
-
-                font_size: 9
+                font_size: sp(9)
                 bold: True
-
                 color: 0.82,0.74,0.55,0.75
-
                 size_hint_y: None
-                height: 14
-
+                height: dp(14)
             Label:
                 id: wave_label
                 text: "1"
-
-                font_size: 21
+                font_size: sp(21)
                 bold: True
-
                 color: 0.96,0.96,0.96,1
 
         Widget:
             size_hint_x: None
-            width: 1
-
+            width: dp(1)
             canvas:
                 Color:
                     rgba: 1,1,1,0.04
                 Rectangle:
-                    pos: self.center_x, self.y + 10
-                    size: 1, self.height - 20
+                    pos: self.center_x, self.y + dp(10)
+                    size: dp(1), self.height - dp(20)
 
-        # Score
         BoxLayout:
             orientation: "vertical"
-
             canvas.before:
                 Color:
                     rgba: 1,1,1,0.025
                 RoundedRectangle:
                     pos: self.pos
                     size: self.size
-                    radius: [8]
-
+                    radius: [dp(8)]
             Label:
                 text: "SCORE"
-
-                font_size: 9
+                font_size: sp(9)
                 bold: True
-
                 color: 0.82,0.74,0.55,0.75
-
                 size_hint_y: None
-                height: 14
-
+                height: dp(14)
             Label:
                 id: score_label
                 text: "0"
-
-                font_size: 21
+                font_size: sp(21)
                 bold: True
-
                 color: 0.96,0.96,0.96,1
 
 
 <GunBar@ButtonBehavior+BoxLayout>:
-
 
 
 # ════════════════════════════════════════════════════
@@ -1147,47 +1068,39 @@
         orientation: "vertical"
         spacing: 0
         size_hint: None, None
-        size: 600, 340
+        size: min(dp(600), Window.width * 0.95), min(dp(340), Window.height * 0.55)
         pos_hint: {"center_x": 0.5, "center_y": 0.5}
 
         canvas.before:
-
-            # Main background
             Color:
                 rgba: 0.11, 0.11, 0.12, 0.98
             RoundedRectangle:
                 pos: self.pos
                 size: self.size
-                radius: [18]
-
-            # Soft border
+                radius: [dp(18)]
             Color:
                 rgba: 1, 1, 1, 0.05
             Line:
-                rounded_rectangle: self.x, self.y, self.width, self.height, 18
-                width: 1.2
-
-            # Top subtle highlight
+                rounded_rectangle: self.x, self.y, self.width, self.height, dp(18)
+                width: dp(1.2)
             Color:
                 rgba: 1, 1, 1, 0.025
             RoundedRectangle:
-                pos: self.x + 2, self.top - 50
-                size: self.width - 4, 48
-                radius: [18,18,0,0]
+                pos: self.x + dp(2), self.top - dp(50)
+                size: self.width - dp(4), dp(48)
+                radius: [dp(18), dp(18), 0, 0]
 
-        # =====================================================
         # HEADER
-        # =====================================================
         BoxLayout:
             orientation: "vertical"
             size_hint_y: None
-            height: 80
-            spacing: 4
-            padding: [0, 18, 0, 0]
+            height: dp(80)
+            spacing: dp(4)
+            padding: [0, dp(18), 0, 0]
 
             Label:
                 text: "LEVEL UP"
-                font_size: 28
+                font_size: sp(28)
                 bold: True
                 color: 0.96, 0.96, 0.96, 1
                 halign: "center"
@@ -1196,29 +1109,25 @@
 
             Label:
                 text: "Choose an Upgrade"
-                font_size: 11
+                font_size: sp(11)
                 color: 1, 1, 1, 0.40
                 halign: "center"
                 valign: "middle"
                 text_size: self.size
 
-        # Divider
         Widget:
             size_hint_y: None
-            height: 1
-
+            height: dp(1)
             canvas:
                 Color:
                     rgba: 1, 1, 1, 0.05
                 Rectangle:
-                    pos: self.x + 28, self.y
-                    size: self.width - 56, 1
+                    pos: self.x + dp(28), self.y
+                    size: self.width - dp(56), dp(1)
 
-        # =====================================================
         # UPGRADE BOX
-        # =====================================================
         BoxLayout:
             id: upgrade_box
             orientation: "horizontal"
-            spacing: 16
-            padding: [18, 18, 18, 18]
+            spacing: dp(16)
+            padding: [dp(18), dp(18), dp(18), dp(18)]
