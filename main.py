@@ -2,12 +2,12 @@
 # Comment out the PC block and uncomment the mobile block to build for mobile.
 
 # -- PC --
-from kivy.config import Config
-Config.set('graphics', 'width',  '1280')
-Config.set('graphics', 'height', '720')
+# from kivy.config import Config
+# Config.set('graphics', 'width',  '1280')
+# Config.set('graphics', 'height', '720')
 
 # -- MOBILE (uncomment below, comment out PC block above) --
-# from kivy.config import Config
+from kivy.config import Config
 
 # ── GLOBAL SCALE FACTOR (must match kv file) ─────────────────────────────────
 # 0.70 = compact mobile  |  0.80 = normal mobile  |  1.0 = PC original size
@@ -43,7 +43,7 @@ from pytmx import TiledMap
 import math
 import random
 
-Config.set("graphics", "resizable", False)
+# Config.set("graphics", "resizable", False)
 
 
 # ── HELPERS ───────────────────────────────────────────────────────────────────
@@ -62,7 +62,7 @@ class Game(FloatLayout):
         super().__init__(**kwargs)
 
         # PC only — comment out for mobile
-        Window.size = (1280, 720)
+        # Window.size = (1280, 720)
 
         Window.bind(on_key_down=self.on_key_down)
         Window.bind(on_key_up=self.on_key_up)
