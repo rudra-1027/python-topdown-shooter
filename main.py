@@ -15,6 +15,7 @@ import os
 from kivy.app import App
 from kivy.uix.widget import Widget
 from kivy.animation import Animation
+from kivy.metrics import dp, sp
 from kivy.uix.floatlayout import FloatLayout
 from kivy.core.window import Window
 from kivy.clock import Clock
