@@ -2634,10 +2634,10 @@ class Player(Widget):
     
     def __init__(self,**kwargs):
         super().__init__(**kwargs)
-        self.shoot_effect={"up":self.load_sheet(CoreImage("gameAsset\effects\Sprite_Fire_Shots_Shot_A_000-0.png").texture,256,256,4,1),
-                       "right":self.load_sheet(CoreImage("gameAsset\effects\Sprite_Fire_Shots_Shot_A_000-0_right.png").texture,256,256,1,4),
-                       "left":self.load_sheet(CoreImage("gameAsset\effects\Sprite_Fire_Shots_Shot_A_000-0_left.png").texture,256,256,1,4),
-                       "down":self.load_sheet(CoreImage("gameAsset\effects\Sprite_Fire_Shots_Shot_A_000-0_down.png").texture,256,256,4,1),
+        self.shoot_effect={"up":self.load_sheet(CoreImage("gameAsset/effects/Sprite_Fire_Shots_Shot_A_000-0.png").texture,256,256,4,1),
+                       "right":self.load_sheet(CoreImage("gameAsset/effects/Sprite_Fire_Shots_Shot_A_000-0_right.png").texture,256,256,1,4),
+                       "left":self.load_sheet(CoreImage("gameAsset/effects/Sprite_Fire_Shots_Shot_A_000-0_left.png").texture,256,256,1,4),
+                       "down":self.load_sheet(CoreImage("gameAsset/effects/Sprite_Fire_Shots_Shot_A_000-0_down.png").texture,256,256,4,1),
                        
     }
 
