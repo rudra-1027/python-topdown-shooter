@@ -11,7 +11,7 @@ from kivy.config import Config
 
 # ── GLOBAL SCALE FACTOR (must match kv file) ─────────────────────────────────
 # 0.70 = compact mobile  |  0.80 = normal mobile  |  1.0 = PC original size
-S = 0.70
+S = 0.60
 
 import json
 import hashlib
@@ -829,7 +829,7 @@ class Game(FloatLayout):
                 widget._border.rounded_rectangle = (widget.x, widget.y, widget.width, widget.height, sdp(13))
             card.bind(pos=_update_card_canvas, size=_update_card_canvas)
 
-            card.add_widget(Image(source=ic, size_hint=(None, None), size=(sdp(120), sdp(120)),
+            card.add_widget(Image(source=ic, size_hint=(None, None), size=(sdp(80), sdp(80)),
                                   pos_hint={"center_x": 0.5}, allow_stretch=True, keep_ratio=True))
 
             for txt, fs, c, ht, bold in [
