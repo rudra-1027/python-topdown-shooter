@@ -25,7 +25,7 @@ from kivy.uix.button import Button
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.image import Image
 from kivy.core.image import Image as CoreImage
-from kivy.graphics import Rectangle,Color,Line, RoundedRectangle,Ellipse,StencilPush, StencilUse,StencilUnUse, StencilPop
+from kivy.graphics import Rectangle,Color,Line, RoundedRectangle,Ellipse,StencilPush, StencilUse,StencilUnUse, StencilPop,Scale
 from kivy.core.audio import SoundLoader
 from kivy.uix.boxlayout import BoxLayout
 from kivy.graphics.texture import Texture
