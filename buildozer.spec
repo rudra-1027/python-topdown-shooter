@@ -4,6 +4,9 @@ title = Last Teen Standing
 package.name = lastteenstanding
 package.domain = org.ritik
 
+icon.filename = gameAsset/icon.png
+presplash.filename = gameAsset/presplash.png
+
 source.dir = .
 source.include_exts = py,kv,png,jpg,jpeg,atlas,wav,mp3,json,tmx,tsx
 
