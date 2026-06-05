@@ -113,11 +113,11 @@ class Game(FloatLayout):
         self.player.guns={"assualt":{"damage": 25,"range": 800,"magazine": 30,"ammo":30,"rate": 0.5,"reload": 1.5}}
         self.player.speed=8
         self.powerUps=[]
-        self.powerUp_type={ 1:{"type":"health","size":sdp(56),"color":[0,1,0,1],"symbol":"+"},
-                            2:{"type":"sheild","size":sdp(56),"color":[0,0.6,1,1],"symbol":"S"},
-                            3:{"type": "damage_booster", "size": sdp(56), "color": [1,0,0,1], "symbol": "D"},
-                            4:{"type": "nuke", "size": sdp(56), "color": [1,0.5,0,1], "symbol": "N"},
-                            5:{"type": "freeze", "size": sdp(56), "color": [0.5,0.8,1,1], "symbol": "F"}}
+        self.powerUp_type={ 1:{"type":"health","size":56,"color":[0,1,0,1],"symbol":"+"},
+                            2:{"type":"sheild","size":56,"color":[0,0.6,1,1],"symbol":"S"},
+                            3:{"type": "damage_booster", "size": 56, "color": [1,0,0,1], "symbol": "D"},
+                            4:{"type": "nuke", "size": 56, "color": [1,0.5,0,1], "symbol": "N"},
+                            5:{"type": "freeze", "size": 56, "color": [0.5,0.8,1,1], "symbol": "F"}}
         self.gunList=[      
                             {"name": "Gun: Shotgun", "type": "shotgun",  "min_wave": 2},
                             {"name": "Gun: machine", "type": "machine",  "min_wave": 4},
@@ -165,9 +165,11 @@ class Game(FloatLayout):
         self.add_widget(self.overlay_layer)
         self.add_widget(self.ui_layer)
         self.add_widget(self.weapon_menu)
+        self.zoom = 1.5   # tweak this — 1.0 = no zoom, 2.0 = very zoomed in
         with self.world_layer.canvas.before:
             PushMatrix()
-            self.camera_translate=Translate(0,0)
+            self.camera_scale = Scale(self.zoom, self.zoom, 1, origin=(0, 0))
+            self.camera_translate = Translate(0, 0)
         with self.world_layer.canvas.after:
             PopMatrix()
             
@@ -392,11 +394,14 @@ class Game(FloatLayout):
             del self.dark_overlay
 
     def update_camera(self):
-        camera_x = self.player.center_x - Window.width / 2
-        camera_y = self.player.center_y - Window.height / 2
+        visible_w = Window.width / self.zoom
+        visible_h = Window.height / self.zoom
 
-        max_x = self.max_world_x - Window.width
-        max_y = self.max_world_y - Window.height
+        camera_x = self.player.center_x - visible_w / 2
+        camera_y = self.player.center_y - visible_h / 2
+
+        max_x = self.max_world_x - visible_w
+        max_y = self.max_world_y - visible_h
 
         camera_x = max(self.min_world_x, min(camera_x, max_x))
         camera_y = max(self.min_world_y, min(camera_y, max_y))
@@ -406,21 +411,11 @@ class Game(FloatLayout):
 
         if hasattr(self, "dark_overlay"):
             self.dark_overlay.size = Window.size
-
-            # camera_translate.x = -camera_x, so actual camera left edge = -camera_translate.x
             actual_camera_x = -self.camera_translate.x
             actual_camera_y = -self.camera_translate.y
-
-            # screen position = world position - camera left edge
-            player_screen_x = self.player.center_x - actual_camera_x
-            player_screen_y = self.player.center_y - actual_camera_y
-            # print(f"player_world=({self.player.center_x:.0f},{self.player.center_y:.0f}) "
-            #         f"cam=({actual_camera_x:.0f},{actual_camera_y:.0f}) "
-            #         f"screen=({player_screen_x:.0f},{player_screen_y:.0f})")
-            self.dark_overlay.update_light(
-                player_screen_x,
-                player_screen_y
-            )                
+            player_screen_x = (self.player.center_x - actual_camera_x) * self.zoom
+            player_screen_y = (self.player.center_y - actual_camera_y) * self.zoom
+            self.dark_overlay.update_light(player_screen_x, player_screen_y)
                 
     def loadMap(self, tmx_path):
 
@@ -1003,7 +998,7 @@ class Game(FloatLayout):
         box       = self.upgrade_panel.ids.upgrade_box
         box.clear_widgets()
         inner_box = box.parent
-        inner_box.size = (min(sdp(600), Window.width * 0.95), min(sdp(340), Window.height * 0.55))
+        inner_box.size = (min(sdp(600), Window.width * 0.95), min(sdp(340), Window.height * 0.6))
 
         player_upgrades = [u for u in self.upgrades if u["target"] == "player"]
         gun_upgrades    = [u for u in self.upgrades if u["target"] == "gun"]
@@ -1140,7 +1135,7 @@ class Game(FloatLayout):
             # print(self.player.health)
         elif(power.type=="sheild"):
             self.player.sheild=True
-            Clock.schedule_once(lambda dt: setattr(self.player,"sheild",False),3)
+            Clock.schedule_once(lambda dt: setattr(self.player,"sheild",False),6)
         elif(power.type=="freeze"):
             self.player.freeze=True
             self.player.freeze_multiplier=0.3
@@ -1673,8 +1668,8 @@ class Game(FloatLayout):
 
         # self.player.x +=vx*speed
         # self.player.y +=vy*speed
-        mov_x=self.player.x +vx*self.player.speed
-        mov_y=self.player.y +vy*self.player.speed
+        mov_x=self.player.x +vx*self.player.speed* dt * 60
+        mov_y=self.player.y +vy*self.player.speed* dt * 60
         if not self.rect_blocked(mov_x+self.player.hitbox_offset_x,self.player.y+self.player.hitbox_offset_y,self.player.hitbox_w,self.player.hitbox_h):
             self.player.x=mov_x
         if not self.rect_blocked(self.player.x+self.player.hitbox_offset_x,mov_y+self.player.hitbox_offset_y,self.player.hitbox_w,self.player.hitbox_h):
@@ -1715,8 +1710,8 @@ class Game(FloatLayout):
 
             #attack
         for attack in self.attacks:
-            attack.x +=attack.vx*attack.speed
-            attack.y +=attack.vy*attack.speed
+            attack.x +=attack.vx*attack.speed* dt * 60
+            attack.y +=attack.vy*attack.speed* dt * 60
             
             
             attack.rdx=attack.center_x-attack.start_x
@@ -1748,8 +1743,8 @@ class Game(FloatLayout):
 
 
         for attack in self.Enemyattacks:
-            attack.x +=attack.vx*attack.speed
-            attack.y +=attack.vy*attack.speed
+            attack.x +=attack.vx*attack.speed* dt * 60
+            attack.y +=attack.vy*attack.speed* dt * 60
             attack.rdx=attack.center_x-attack.start_x
             attack.rdy=attack.center_y-attack.start_y
             distance=math.hypot(attack.rdx,attack.rdy)
@@ -1808,7 +1803,7 @@ class Game(FloatLayout):
                 
                 # safe_dist_x=self.player.damage_hitbox_w/2
                 # safe_dist_y=self.player.damage_hitbox_h/2
-                effective_speed=enemy.speed*self.player.freeze_multiplier
+                effective_speed=enemy.speed*self.player.freeze_multiplier* dt * 60
                 if(enemy.role !="ranged"):
                     # if enemy_distance>safe_dist_x:
                     if not self.rect_overlap(
@@ -1879,8 +1874,8 @@ class Game(FloatLayout):
                     if(enemy_distance<enemy.minDist):
                         # enemy.x-=enemy_x*enemy.speed
                         # enemy.y-=enemy_y*enemy.speed
-                        ene_mov_x=enemy.x-enemy_x*enemy.speed
-                        ene_mov_y=enemy.y-enemy_y*enemy.speed
+                        ene_mov_x=enemy.x-enemy_x*enemy.speed* dt * 60
+                        ene_mov_y=enemy.y-enemy_y*enemy.speed* dt * 60
                         if not self.enemy_colloison(enemy,ene_mov_x,enemy.y):
                             enemy.x=ene_mov_x
                         if not self.enemy_colloison(enemy,enemy.x,ene_mov_y):
@@ -1888,8 +1883,8 @@ class Game(FloatLayout):
                     if(enemy_distance>enemy.maxDist):
                         # enemy.x +=enemy_x*enemy.speed
                         # enemy.y +=enemy_y*enemy.speed
-                        ene_mov_x=enemy.x+enemy_x*enemy.speed
-                        ene_mov_y=enemy.y+enemy_y*enemy.speed
+                        ene_mov_x=enemy.x+enemy_x*enemy.speed* dt * 60
+                        ene_mov_y=enemy.y+enemy_y*enemy.speed* dt * 60
                         if not self.enemy_colloison(enemy,ene_mov_x,enemy.y):
                             enemy.x=ene_mov_x
                         if not self.enemy_colloison(enemy,enemy.x,ene_mov_y):
