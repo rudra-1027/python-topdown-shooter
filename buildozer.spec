@@ -4,7 +4,7 @@ title = Last Teen Standing
 package.name = lastteenstanding
 package.domain = org.ritik
 
-icon.filename = gameAsset/icon.png
+icon.filename = gameAsset/app_icon.png
 presplash.filename = gameAsset/presplash.png
 
 source.dir = .
