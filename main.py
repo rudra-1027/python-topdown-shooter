@@ -138,7 +138,7 @@ class Game(FloatLayout):
         self.enemies=[]
         self.attacks=[]
         self.Enemyattacks=[]
-        self.remove_attack=[]
+        self.remove_attack=set()
         self.remove_enemyAttack=[]
         self.remove_enemy=[]
         self.remove_powerup=[]
@@ -180,7 +180,7 @@ class Game(FloatLayout):
         
         self.loadMap("gameAsset/maps/map4.tmx")
         self.hit=self.load_sheet(CoreImage("gameAsset/effects/NEw pack blood/4_100x100px.png").texture,100,100,6,2)
-        
+        self.attack_pool = []
                         
     def save_stats(self):
 
@@ -1200,7 +1200,27 @@ class Game(FloatLayout):
             self.game_layer.remove_widget(powerUp)
             self.powerUps.remove(powerUp)
 
-
+    def _get_attack(self, direction):
+        if self.attack_pool:
+            attack = self.attack_pool.pop()
+            dx, dy = direction
+            length = math.sqrt(dx**2 + dy**2)
+            if length == 0:
+                attack.vx, attack.vy = 0, 1
+            else:
+                attack.vx = dx / length
+                attack.vy = dy / length
+            attack.speed = 15
+        else:
+            attack = Attack(direction=direction)
+        return attack
+    
+    def _return_attack(self, attack):
+        if attack.parent:
+            self.game_layer.remove_widget(attack)
+        if len(self.attack_pool) < 30:   # cap pool size
+            self.attack_pool.append(attack)
+        
     def spawnAtttck(self,dt):
         if self.player.gun.reloading:
             return
@@ -1227,7 +1247,8 @@ class Game(FloatLayout):
         self.player.update_direction(dx,dy)
         self.player.set_state("attack_"+self.player.facing)
         
-        attack=Attack(direction=direction)
+        # attack=Attack(direction=direction)
+        attack=self._get_attack(direction)
         attack.damage=self.player.guns[self.player.gun.current]["damage"]
         attack.center=self.player.gun.center
         attack.start_x=attack.center_x
@@ -1719,11 +1740,11 @@ class Game(FloatLayout):
             distance=math.hypot(attack.rdx,attack.rdy)
             if attack.y > self.world_h or distance >self.player.guns[self.player.gun.current]["range"]:
                 # self.remove_widget(attack)
-                self.remove_attack.append(attack)
+                self.remove_attack.add(attack)
                 # self.attacks.remove(attack)
             if self.rect_blocked(attack.x,attack.y,attack.attack_w,attack.attack_h):
                 # print("obstacle is hit")
-                self.remove_attack.append(attack)
+                self.remove_attack.add(attack)
             for enemy in self.enemies:
                 
 
@@ -1731,7 +1752,7 @@ class Game(FloatLayout):
                     enemy.health -=attack.damage*self.player.damage_multiplier
                     self.enemyHit(enemy,attack.damage*self.player.damage_multiplier)
                     # self.remove_widget(attack)
-                    self.remove_attack.append(attack)
+                    self.remove_attack.add(attack)
                     # self.attacks.remove(attack)
                     # print(enemy.health)
                     if enemy.health<=0:
@@ -1961,8 +1982,9 @@ class Game(FloatLayout):
             for entity in self.remove_attack:
                 if entity in self.attacks:
                     self.attacks.remove(entity)
-                if entity.parent:
-                    self.game_layer.remove_widget(entity)
+                self._return_attack(entity)
+                # if entity.parent:
+                #     self.game_layer.remove_widget(entity)
             self.remove_attack.clear()
         if len(self.remove_powerup)>0:
             for entity in self.remove_powerup:
