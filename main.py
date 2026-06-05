@@ -157,7 +157,7 @@ class Game(FloatLayout):
         self.enemy=Clock.schedule_interval(self.spawnEnemy,8)
         self.powerUp=Clock.schedule_interval(self.spawnPowerUp,8)
         self.regen_event=Clock.schedule_interval(self.playerRegen,5)
-        self.game_update=Clock.schedule_interval(self.update,1/60)
+        self.game_update=Clock.schedule_interval(self.update,1/30)
         self.add_widget(self.world_layer)
 
         self.world_layer.add_widget(self.ground_layer)
@@ -3241,13 +3241,22 @@ class MainMenu(FloatLayout):
 class Escape(App):
     def build(self):
         self.root_layout = FloatLayout()
-        menu = MainMenu()
-        self.gs=Sound()
-        if(self.gs.menu_music.state!="play"):
-            self.gs.menu_music.play()
-        self.root_layout.add_widget(menu)
-        
+        self.loading_label = Label(
+            text="Loading...",
+            font_size=40,
+            pos_hint={"center_x": 0.5, "center_y": 0.5}
+        )
+        self.root_layout.add_widget(self.loading_label)
+        Clock.schedule_once(self._load_app, 0.1)
         return self.root_layout
+
+    def _load_app(self, dt):
+        self.root_layout.remove_widget(self.loading_label)
+        self.gs = Sound()
+        if self.gs.menu_music.state != "play":
+            self.gs.menu_music.play()
+        menu = MainMenu()
+        self.root_layout.add_widget(menu)
     
     def play_click(self):
             self.gs.button_click.stop()
