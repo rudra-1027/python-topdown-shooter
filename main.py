@@ -181,6 +181,7 @@ class Game(FloatLayout):
         self.loadMap("gameAsset/maps/map4.tmx")
         self.hit=self.load_sheet(CoreImage("gameAsset/effects/NEw pack blood/4_100x100px.png").texture,100,100,6,2)
         self.attack_pool = []
+        self.dmg_pool = []
                         
     def save_stats(self):
 
@@ -303,7 +304,12 @@ class Game(FloatLayout):
     def rebuild_upgrade_pool(self):
 
         self.upgrades.clear()
-
+        self.upgrades = [
+                            {"target":"player","name": "Regen +1", "type": "regen", "value": 1,"count":0},
+                            {"target":"player","name": "Max Health +20", "type": "max_health", "value": 20,"count":0},
+                            {"target":"player","name": "Heal 25", "type": "health", "value": 25,"count":0},
+                            
+                        ]
         for upgrade in self.player.gun.assault_upgrade:
 
             if (
@@ -907,12 +913,12 @@ class Game(FloatLayout):
                 self.unlocked_gun = gun
 
         # ── Refresh upgrade pool ──
-        for upgrade in self.player.gun.assault_upgrade:
-            if self.wave_count >= upgrade["min_wave"] and upgrade not in self.upgrades and upgrade["gun"] in self.player.guns:
-                self.upgrades.append(upgrade)
-            if upgrade["count"] >= upgrade["max_stack"] and upgrade in self.upgrades:
-                self.upgrades.remove(upgrade)
-
+        # for upgrade in self.player.gun.assault_upgrade:
+        #     if self.wave_count >= upgrade["min_wave"] and upgrade not in self.upgrades and upgrade["gun"] in self.player.guns:
+        #         self.upgrades.append(upgrade)
+        #     if upgrade["count"] >= upgrade["max_stack"] and upgrade in self.upgrades:
+        #         self.upgrades.remove(upgrade)
+        self.rebuild_upgrade_pool()
         self.upgrade_panel = UpgradePanel()
 
         if self.unlocked_gun:
@@ -1446,23 +1452,51 @@ class Game(FloatLayout):
         Clock.schedule_once(self.stop_poison, enemy.poison_time)
         
 
-
-
-    def enemyHit(self,enemy,damage):
-        enemy.color=(2,2,2,1)
-        dmg=DamageNumber(text=str(damage),pos=(enemy.center_x,enemy.center_y))
+    def _get_dmg_label(self, text, pos):
+        if self.dmg_pool:
+            lbl = self.dmg_pool.pop()
+            lbl.text = text
+            lbl.pos = pos
+        else:
+            lbl = DamageNumber(text=text, pos=pos)
+        return lbl
+    
+    def _return_dmg_label(self, lbl):
+        if lbl.parent:
+            self.game_layer.remove_widget(lbl)
+        if len(self.dmg_pool) < 20:
+            self.dmg_pool.append(lbl)
+            
+    def enemyHit(self, enemy, damage):
+        now = Clock.get_time()
+        if hasattr(enemy, '_last_hit') and now - enemy._last_hit < 0.1:
+            return
+        enemy._last_hit = now
+        enemy.color = (2, 2, 2, 1)
+        dmg = self._get_dmg_label(str(int(damage)), (enemy.center_x, enemy.center_y))
         self.game_layer.add_widget(dmg)
         self.spawn_effect_enemy_hit(enemy)
-        # self.gs.enemy_hit.stop()
-        # self.gs.enemy_hit.play()
+        Clock.schedule_once(lambda dt: self._return_and_reset(enemy, dmg), 0.1)
+    
+    def _return_and_reset(self, enemy, dmg):
+        enemy.color = (1, 1, 1, 1)
+        self._return_dmg_label(dmg)
+
+    # def enemyHit(self,enemy,damage):
+    #     enemy.color=(2,2,2,1)
+    #     dmg=DamageNumber(text=str(damage),pos=(enemy.center_x,enemy.center_y))
+    #     self.game_layer.add_widget(dmg)
+    #     self.spawn_effect_enemy_hit(enemy)
+    #     # self.gs.enemy_hit.stop()
+    #     # self.gs.enemy_hit.play()
 
 
-        Clock.schedule_once(lambda dt:self.resetEnemyFlash(enemy,dmg),0.1)
+    #     Clock.schedule_once(lambda dt:self.resetEnemyFlash(enemy,dmg),0.1)
         
     
-    def resetEnemyFlash(self,enemy,dmg):
-        enemy.color=(1,1,1,1)
-        self.game_layer.remove_widget(dmg)
+    # def resetEnemyFlash(self,enemy,dmg):
+    #     enemy.color=(1,1,1,1)
+    #     self.game_layer.remove_widget(dmg)
     
     def enemyDeathAnimation(self,enemy):
         if enemy.health <=0 and not enemy.death:
@@ -1609,29 +1643,24 @@ class Game(FloatLayout):
 
     def show_status(self):
         bar = self.player.healthBar
-
+        
         if self.player.poisoned:
-            bar.status_text = "Poisoned"
-            bar.status_color = [0.43, 0.81, 0.43, 1]      # sickly green
+            new_text, new_color = "Poisoned", [0.43, 0.81, 0.43, 1]
         elif self.player.nuked:
-            bar.status_text="antivirus spreaded"
-            bar.status_color=[0.30, 0.70, 1.0, 1]
-
+            new_text, new_color = "antivirus spreaded", [0.30, 0.70, 1.0, 1]
         elif self.player.sheild:
-            bar.status_text = "Shielded"
-            bar.status_color = [0.30, 0.70, 1.0, 1]        # bright blue
-
+            new_text, new_color = "Shielded", [0.30, 0.70, 1.0, 1]
         elif self.player.freeze:
-            bar.status_text = "Enemies Frozen"
-            bar.status_color = [0.55, 0.90, 1.0, 1]        # icy cyan
-
+            new_text, new_color = "Enemies Frozen", [0.55, 0.90, 1.0, 1]
         elif self.player.damage_booster:
-            bar.status_text = "Damage Boosted"
-            bar.status_color = [1.0, 0.55, 0.10, 1]        # fiery orange
-
+            new_text, new_color = "Damage Boosted", [1.0, 0.55, 0.10, 1]
         else:
-            bar.status_text = "No status effect"
-            bar.status_color = [1, 1, 1, 0.35]             # dim white
+            new_text, new_color = "No status effect", [1, 1, 1, 0.35]
+    
+        # only update if changed — avoids triggering canvas redraw every frame
+        if bar.status_text != new_text:
+            bar.status_text = new_text
+            bar.status_color = new_color
 
         
 
@@ -1642,8 +1671,12 @@ class Game(FloatLayout):
         
         
         # print(self.player.speed)
-        self.ui_layer.ids.wave_label.text = str(self.wave_count)
-        self.ui_layer.ids.score_label.text = str(self.player.score)
+        wave_str = str(self.wave_count)
+        score_str = str(self.player.score)
+        if self.ui_layer.ids.wave_label.text != wave_str:
+            self.ui_layer.ids.wave_label.text = wave_str
+        if self.ui_layer.ids.score_label.text != score_str:
+            self.ui_layer.ids.score_label.text = score_str
         self.update_joystick_from_keyboard()
         self.update_camera()
         self.show_status()
@@ -1689,8 +1722,8 @@ class Game(FloatLayout):
 
         # self.player.x +=vx*speed
         # self.player.y +=vy*speed
-        mov_x=self.player.x +vx*self.player.speed* dt * 60
-        mov_y=self.player.y +vy*self.player.speed* dt * 60
+        mov_x=self.player.x +vx*self.player.speed* dt * 30
+        mov_y=self.player.y +vy*self.player.speed* dt * 30
         if not self.rect_blocked(mov_x+self.player.hitbox_offset_x,self.player.y+self.player.hitbox_offset_y,self.player.hitbox_w,self.player.hitbox_h):
             self.player.x=mov_x
         if not self.rect_blocked(self.player.x+self.player.hitbox_offset_x,mov_y+self.player.hitbox_offset_y,self.player.hitbox_w,self.player.hitbox_h):
@@ -1731,8 +1764,8 @@ class Game(FloatLayout):
 
             #attack
         for attack in self.attacks:
-            attack.x +=attack.vx*attack.speed* dt * 60
-            attack.y +=attack.vy*attack.speed* dt * 60
+            attack.x +=attack.vx*attack.speed* dt * 30
+            attack.y +=attack.vy*attack.speed* dt * 30
             
             
             attack.rdx=attack.center_x-attack.start_x
@@ -1764,8 +1797,8 @@ class Game(FloatLayout):
 
 
         for attack in self.Enemyattacks:
-            attack.x +=attack.vx*attack.speed* dt * 60
-            attack.y +=attack.vy*attack.speed* dt * 60
+            attack.x +=attack.vx*attack.speed* dt * 30
+            attack.y +=attack.vy*attack.speed* dt * 30
             attack.rdx=attack.center_x-attack.start_x
             attack.rdy=attack.center_y-attack.start_y
             distance=math.hypot(attack.rdx,attack.rdy)
@@ -1824,7 +1857,7 @@ class Game(FloatLayout):
                 
                 # safe_dist_x=self.player.damage_hitbox_w/2
                 # safe_dist_y=self.player.damage_hitbox_h/2
-                effective_speed=enemy.speed*self.player.freeze_multiplier* dt * 60
+                effective_speed=enemy.speed*self.player.freeze_multiplier* dt * 30
                 if(enemy.role !="ranged"):
                     # if enemy_distance>safe_dist_x:
                     if not self.rect_overlap(
@@ -1895,8 +1928,8 @@ class Game(FloatLayout):
                     if(enemy_distance<enemy.minDist):
                         # enemy.x-=enemy_x*enemy.speed
                         # enemy.y-=enemy_y*enemy.speed
-                        ene_mov_x=enemy.x-enemy_x*enemy.speed* dt * 60
-                        ene_mov_y=enemy.y-enemy_y*enemy.speed* dt * 60
+                        ene_mov_x=enemy.x-enemy_x*enemy.speed* dt * 30
+                        ene_mov_y=enemy.y-enemy_y*enemy.speed* dt * 30
                         if not self.enemy_colloison(enemy,ene_mov_x,enemy.y):
                             enemy.x=ene_mov_x
                         if not self.enemy_colloison(enemy,enemy.x,ene_mov_y):
@@ -1904,8 +1937,8 @@ class Game(FloatLayout):
                     if(enemy_distance>enemy.maxDist):
                         # enemy.x +=enemy_x*enemy.speed
                         # enemy.y +=enemy_y*enemy.speed
-                        ene_mov_x=enemy.x+enemy_x*enemy.speed* dt * 60
-                        ene_mov_y=enemy.y+enemy_y*enemy.speed* dt * 60
+                        ene_mov_x=enemy.x+enemy_x*enemy.speed* dt * 30
+                        ene_mov_y=enemy.y+enemy_y*enemy.speed* dt * 30
                         if not self.enemy_colloison(enemy,ene_mov_x,enemy.y):
                             enemy.x=ene_mov_x
                         if not self.enemy_colloison(enemy,enemy.x,ene_mov_y):
@@ -2398,11 +2431,12 @@ class Effect(Widget):
         self.frames=frame
         self.frame_index=0
         self.texture=self.frames[self.frame_index]
-        Clock.schedule_interval(self.animate,0.05)
+        self._anim_event =Clock.schedule_interval(self.animate,0.05)
     def animate(self,dt):
         # print(self.frame_index)
         self.frame_index+=1
         if self.frame_index>=len(self.frames):
+            self._anim_event.cancel()
             if self.parent:
                 self.parent.remove_widget(self)
             return False
