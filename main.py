@@ -83,8 +83,12 @@ class Game(FloatLayout):
         self.overlay_layer.size = (0, 0)
         
         self.gs=Sound()
-        self.gs.game_music.loop=True
-        if self.gs.game_music.state!="play":
+        # self.gs.game_music.loop=True
+        # if self.gs.game_music.state!="play":
+        #     self.gs.game_music.play()
+        self.gs.game_music.loop = False
+        self.gs.game_music.bind(on_stop=self._on_game_music_stop)
+        if self.gs.game_music.state != "play":
             self.gs.game_music.play()
 
         self.player=Player()
@@ -182,6 +186,279 @@ class Game(FloatLayout):
         self.hit=self.load_sheet(CoreImage("gameAsset/effects/NEw pack blood/4_100x100px.png").texture,100,100,6,2)
         self.attack_pool = []
         self.dmg_pool = []
+        frame_w =256
+        frame_h = 256
+        cols = 4
+        rows = 6
+        self.Enemyanimations={"melee":{
+            "death":self.load_sheet(CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Death1/Death1 Body 0.png").texture,
+                                    frame_w,frame_h,6,5),
+            "idle_up":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Idle/Idle Body 0.png").texture,
+                            frame_w, frame_h, 4,5
+                        ),
+            "run_up": self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Run/Run Body 0.png").texture,
+                            frame_w, frame_h, 4,5
+                        ),
+            "attack_up":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Attack2/Attack2 Body 0.png").texture,
+                            frame_w,frame_h,4,5
+            ),
+            "idle_down":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Idle/Idle Body 180.png").texture,
+                            frame_w, frame_h, 4,5
+                        ),
+            "run_down": self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Run/Run Body 180.png").texture,
+                            frame_w, frame_h, 4,5
+                        ),
+            "attack_down":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Attack2/Attack2 Body 180.png").texture,
+                            frame_w,frame_h,4,5
+            ),
+            "idle_right":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Idle/Idle Body 090.png").texture,
+                            frame_w, frame_h, 4,5
+                        ),
+            "run_right": self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Run/Run Body 090.png").texture,
+                            frame_w, frame_h, 4,5
+                        ),
+            "attack_right":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Attack2/Attack2 Body 090.png").texture,
+                            frame_w,frame_h,4,5
+            ),
+            "idle_left":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Idle/Idle Body 270.png").texture,
+                            frame_w, frame_h, 4,5
+                        ),
+            "run_left": self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Run/Run Body 270.png").texture,
+                            frame_w, frame_h, 4,5
+                        ),
+            "attack_left":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Attack2/Attack2 Body 270.png").texture,
+                            frame_w,frame_h,4,5
+            ),
+        },
+        "ranged":{
+            "death":self.load_sheet(CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Death1/Death1 Body 0.png").texture,
+                                    frame_w,frame_h,6,5),
+            "idle_up":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Idle/Idle Body 0.png").texture,
+                            frame_w, frame_h, 4,5
+                        ),
+            "run_up": self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Run/Run Body 0.png").texture,
+                            frame_w, frame_h, 4,5
+                        ),
+            "attack_up":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Attack3/Attack3 Body 0.png").texture,
+                            frame_w,frame_h,6,4
+            ),
+            "idle_down":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Idle/Idle Body 180.png").texture,
+                            frame_w, frame_h, 4,5
+                        ),
+            "run_down": self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Run/Run Body 180.png").texture,
+                            frame_w, frame_h, 4,5
+                        ),
+            "attack_down":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Attack3/Attack3 Body 180.png").texture,
+                            frame_w,frame_h,6,4
+            ),
+            "idle_right":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Idle/Idle Body 090.png").texture,
+                            frame_w, frame_h, 4,5
+                        ),
+            "run_right": self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Run/Run Body 090.png").texture,
+                            frame_w, frame_h, 4,5
+                        ),
+            "attack_right":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Attack3/Attack3 Body 090.png").texture,
+                            frame_w,frame_h,6,4
+            ),
+            "idle_left":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Idle/Idle Body 270.png").texture,
+                            frame_w, frame_h, 4,5
+                        ),
+            "run_left": self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Run/Run Body 270.png").texture,
+                            frame_w, frame_h, 4,5
+                        ),
+            "attack_left":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Attack3/Attack3 Body 270.png").texture,
+                            frame_w,frame_h,6,4
+            ),
+        },
+        
+        "boss":{
+            "death":self.load_sheet(CoreImage("gameAsset/Characters/Enemy/boss2/death/up.png").texture,
+                                    frame_w,frame_h,16,1),
+            "idle_up":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/boss2/idle/up.png").texture,
+                            frame_w, frame_h, 20,1
+                        ),
+            "run_up": self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/boss2/run/up.png").texture,
+                            frame_w, frame_h, 16,1
+                        ),
+            "attack_up":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/boss2/attack/up.png").texture,
+                            frame_w,frame_h,20,1
+            ),
+            "idle_down":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/boss2/idle/up.png").texture,
+                            frame_w, frame_h, 20,1
+                        ),
+            "run_down": self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/boss2/run/down.png").texture,
+                            frame_w, frame_h, 16,1
+                        ),
+            "attack_down":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/boss2/attack/down.png").texture,
+                            frame_w,frame_h,20,1
+            ),
+            "idle_right":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/boss2/idle/up.png").texture,
+                            frame_w, frame_h, 20,1
+                        ),
+            "run_right": self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/boss2/run/left.png").texture,
+                            frame_w, frame_h, 16,1
+                        ),
+            "attack_right":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/boss2/attack/left.png").texture,
+                            frame_w,frame_h,16,1
+            ),
+            "idle_left":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/boss2/idle/up.png").texture,
+                            frame_w, frame_h, 20,1
+                        ),
+            "run_left": self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/boss2/run/right.png").texture,
+                            frame_w, frame_h, 16,1
+                        ),
+            "attack_left":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/boss2/attack/right.png").texture,
+                            frame_w,frame_h,16,1
+            ),
+        },
+        
+        "elite":{
+            "death":self.load_sheet(CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Death1/Death1 Body 0.png").texture,
+                                    frame_w,frame_h,6,5),
+            "idle_up":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Idle/Idle Body 0.png").texture,
+                            frame_w, frame_h, 4,5
+                        ),
+            "run_up": self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Run/Run Body 0.png").texture,
+                            frame_w, frame_h, 4,5
+                        ),
+            "attack_up":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Attack3/Attack3 Body 0.png").texture,
+                            frame_w,frame_h,6,4
+            ),
+            "idle_down":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Idle/Idle Body 180.png").texture,
+                            frame_w, frame_h, 4,5
+                        ),
+            "run_down": self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Run/Run Body 180.png").texture,
+                            frame_w, frame_h, 4,5
+                        ),
+            "attack_down":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Attack3/Attack3 Body 180.png").texture,
+                            frame_w,frame_h,6,4
+            ),
+            "idle_right":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Idle/Idle Body 090.png").texture,
+                            frame_w, frame_h, 4,5
+                        ),
+            "run_right": self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Run/Run Body 090.png").texture,
+                            frame_w, frame_h, 4,5
+                        ),
+            "attack_right":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Attack3/Attack3 Body 090.png").texture,
+                            frame_w,frame_h,6,4
+            ),
+            "idle_left":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Idle/Idle Body 270.png").texture,
+                            frame_w, frame_h, 4,5
+                        ),
+            "run_left": self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Run/Run Body 270.png").texture,
+                            frame_w, frame_h, 4,5
+                        ),
+            "attack_left":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Attack3/Attack3 Body 270.png").texture,
+                            frame_w,frame_h,6,4
+            ),
+        },
+        "poisoner":{
+            "death":self.load_sheet(CoreImage("gameAsset/Characters/Enemy/5/idle/s.png").texture,
+                                    frame_w,frame_h,21,1),
+            "idle_up":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/5/idle/n.png").texture,
+                            frame_w,frame_h, 19,1
+                        ),
+            "run_up": self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/5/walk/n.png").texture,
+                            frame_w, frame_h, 24,1
+                        ),
+            "attack_up":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/5/attack/n.png").texture,
+                            frame_w,frame_h,44,1
+            ),
+            "idle_down":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/5/idle/s.png").texture,
+                            frame_w, frame_h, 21,1
+                        ),
+            "run_down": self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/5/walk/s.png").texture,
+                            frame_w, frame_h, 26,1
+                        ),
+            "attack_down":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/5/attack/s.png").texture,
+                            frame_w,frame_h,6,6
+            ),
+            "idle_right":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/5/idle/e.png").texture,
+                            frame_w, frame_h, 19,1
+                        ),
+            "run_right": self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/5/walk/e.png").texture,
+                            frame_w, frame_h, 25,1
+                        ),
+            "attack_right":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/5/attack/e.png").texture,
+                            frame_w,frame_h,44,1
+            ),
+            "idle_left":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/5/idle/w.png").texture,
+                            frame_w, frame_h, 21,1
+                        ),
+            "run_left": self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/5/walk/w.png").texture,
+                            frame_w, frame_h, 26,1
+                        ),
+            "attack_left":self.load_sheet(
+                            CoreImage("gameAsset/Characters/Enemy/5/attack/w.png").texture,
+                            frame_w,frame_h,6,6
+            ),
+        },
+
+           }
+        Enemy.animations = self.Enemyanimations
+
+    def _on_game_music_stop(self, sound):
+        if self.gameState == "playing":
+            Clock.schedule_once(lambda dt: sound.play(), 0.1)
                         
     def save_stats(self):
 
@@ -1241,10 +1518,12 @@ class Game(FloatLayout):
         # if(self.gs.gun_sound[self.player.gun.current]["shoot"].state!="play"):
         self.gs.gun_sound[self.player.gun.current]["shoot"].stop()
         self.gs.gun_sound[self.player.gun.current]["shoot"].play()
+        ammo = self.player.guns[self.player.gun.current]["ammo"]
+        if self.player.gun.current != "machine" or ammo % 3 == 0 or ammo <= 3:
+            self.ui_layer.update()
         
         
-        
-        self.ui_layer.update()
+        # self.ui_layer.update()
         dx, dy = self.AttackJoystick.vector
         
         if dx == 0 and dy==0:
@@ -1265,7 +1544,8 @@ class Game(FloatLayout):
         self.attacks.append(attack)
 
         if self.player.gun.current=="shotgun":
-            attack=Attack(direction=(dx+0.45,dy))
+            # attack=Attack(direction=(dx+0.45,dy))
+            attack = self._get_attack((dx+0.45, dy))
             attack.damage=self.player.guns[self.player.gun.current]["damage"]
             attack.center=self.player.gun.center
             attack.start_x=attack.center_x
@@ -1316,6 +1596,8 @@ class Game(FloatLayout):
         effect=Effect(frame=self.hit,pos=(entity.center_x-40,entity.center_y-40))
         self.game_layer.add_widget(effect)
     def spawn_effect_gun_shoot(self,entity,attack):
+        if self.player.gun.current == "machine":
+            return 
         if(entity.facing=="up"):
             pos=(attack.start_x-45,attack.start_y-5)
         elif(entity.facing=="down"):
@@ -1681,18 +1963,18 @@ class Game(FloatLayout):
         self.update_camera()
         self.show_status()
         
-        self.player.hitbox_debug.rectangle = (
-    self.player.x + self.player.hitbox_offset_x,
-    self.player.y + self.player.hitbox_offset_y,
-    self.player.hitbox_w,
-    self.player.hitbox_h
-)
-        self.player.damage_hitbox_debug.rectangle = (
-    self.player.x + self.player.damage_hitbox_offset_x,
-    self.player.y + self.player.damage_hitbox_offset_y,
-    self.player.damage_hitbox_w,
-    self.player.damage_hitbox_h
-)
+#         self.player.hitbox_debug.rectangle = (
+#     self.player.x + self.player.hitbox_offset_x,
+#     self.player.y + self.player.hitbox_offset_y,
+#     self.player.hitbox_w,
+#     self.player.hitbox_h
+# )
+#         self.player.damage_hitbox_debug.rectangle = (
+#     self.player.x + self.player.damage_hitbox_offset_x,
+#     self.player.y + self.player.damage_hitbox_offset_y,
+#     self.player.damage_hitbox_w,
+#     self.player.damage_hitbox_h
+# )
 
         if self.player.guns[self.player.gun.current]["ammo"]<=0 and not self.player.gun.reloading:
             # print("entered")
@@ -1722,8 +2004,8 @@ class Game(FloatLayout):
 
         # self.player.x +=vx*speed
         # self.player.y +=vy*speed
-        mov_x=self.player.x +vx*self.player.speed* dt * 30
-        mov_y=self.player.y +vy*self.player.speed* dt * 30
+        mov_x=self.player.x +vx*self.player.speed* dt * 45
+        mov_y=self.player.y +vy*self.player.speed* dt * 45
         if not self.rect_blocked(mov_x+self.player.hitbox_offset_x,self.player.y+self.player.hitbox_offset_y,self.player.hitbox_w,self.player.hitbox_h):
             self.player.x=mov_x
         if not self.rect_blocked(self.player.x+self.player.hitbox_offset_x,mov_y+self.player.hitbox_offset_y,self.player.hitbox_w,self.player.hitbox_h):
@@ -1764,8 +2046,8 @@ class Game(FloatLayout):
 
             #attack
         for attack in self.attacks:
-            attack.x +=attack.vx*attack.speed* dt * 30
-            attack.y +=attack.vy*attack.speed* dt * 30
+            attack.x +=attack.vx*attack.speed* dt * 45
+            attack.y +=attack.vy*attack.speed* dt * 45
             
             
             attack.rdx=attack.center_x-attack.start_x
@@ -1797,8 +2079,8 @@ class Game(FloatLayout):
 
 
         for attack in self.Enemyattacks:
-            attack.x +=attack.vx*attack.speed* dt * 30
-            attack.y +=attack.vy*attack.speed* dt * 30
+            attack.x +=attack.vx*attack.speed* dt * 45
+            attack.y +=attack.vy*attack.speed* dt * 45
             attack.rdx=attack.center_x-attack.start_x
             attack.rdy=attack.center_y-attack.start_y
             distance=math.hypot(attack.rdx,attack.rdy)
@@ -1828,18 +2110,18 @@ class Game(FloatLayout):
             if enemy.state=="death":
                 continue
 
-            enemy.hitbox_debug.rectangle = (
-    enemy.x + enemy.hitbox_offset_x,
-    enemy.y + enemy.hitbox_offset_y,
-    enemy.hitbox_w,
-    enemy.hitbox_h
-)
-            enemy.damage_hitbox_debug.rectangle = (
-    enemy.x + enemy.damage_hitbox_offset_x,
-    enemy.y + enemy.damage_hitbox_offset_y,
-    enemy.damage_hitbox_w,
-    enemy.damage_hitbox_h
-)
+#             enemy.hitbox_debug.rectangle = (
+#     enemy.x + enemy.hitbox_offset_x,
+#     enemy.y + enemy.hitbox_offset_y,
+#     enemy.hitbox_w,
+#     enemy.hitbox_h
+# )
+#             enemy.damage_hitbox_debug.rectangle = (
+#     enemy.x + enemy.damage_hitbox_offset_x,
+#     enemy.y + enemy.damage_hitbox_offset_y,
+#     enemy.damage_hitbox_w,
+#     enemy.damage_hitbox_h
+# )
             px,py=self.player.center
             ex,ey=enemy.center
             
@@ -1857,7 +2139,7 @@ class Game(FloatLayout):
                 
                 # safe_dist_x=self.player.damage_hitbox_w/2
                 # safe_dist_y=self.player.damage_hitbox_h/2
-                effective_speed=enemy.speed*self.player.freeze_multiplier* dt * 30
+                effective_speed=enemy.speed*self.player.freeze_multiplier* dt * 45
                 if(enemy.role !="ranged"):
                     # if enemy_distance>safe_dist_x:
                     if not self.rect_overlap(
@@ -1928,8 +2210,8 @@ class Game(FloatLayout):
                     if(enemy_distance<enemy.minDist):
                         # enemy.x-=enemy_x*enemy.speed
                         # enemy.y-=enemy_y*enemy.speed
-                        ene_mov_x=enemy.x-enemy_x*enemy.speed* dt * 30
-                        ene_mov_y=enemy.y-enemy_y*enemy.speed* dt * 30
+                        ene_mov_x=enemy.x-enemy_x*enemy.speed* dt * 45
+                        ene_mov_y=enemy.y-enemy_y*enemy.speed* dt * 45
                         if not self.enemy_colloison(enemy,ene_mov_x,enemy.y):
                             enemy.x=ene_mov_x
                         if not self.enemy_colloison(enemy,enemy.x,ene_mov_y):
@@ -1937,8 +2219,8 @@ class Game(FloatLayout):
                     if(enemy_distance>enemy.maxDist):
                         # enemy.x +=enemy_x*enemy.speed
                         # enemy.y +=enemy_y*enemy.speed
-                        ene_mov_x=enemy.x+enemy_x*enemy.speed* dt * 30
-                        ene_mov_y=enemy.y+enemy_y*enemy.speed* dt * 30
+                        ene_mov_x=enemy.x+enemy_x*enemy.speed* dt * 45
+                        ene_mov_y=enemy.y+enemy_y*enemy.speed* dt * 45
                         if not self.enemy_colloison(enemy,ene_mov_x,enemy.y):
                             enemy.x=ene_mov_x
                         if not self.enemy_colloison(enemy,enemy.x,ene_mov_y):
@@ -2667,270 +2949,7 @@ class Enemy(Widget):
         cols = 4
         rows = 6
         self.role='melee'
-        self.animations={"melee":{
-            "death":self.load_sheet(CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Death1/Death1 Body 0.png").texture,
-                                    frame_w,frame_h,6,5),
-            "idle_up":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Idle/Idle Body 0.png").texture,
-                            frame_w, frame_h, 4,5
-                        ),
-            "run_up": self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Run/Run Body 0.png").texture,
-                            frame_w, frame_h, 4,5
-                        ),
-            "attack_up":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Attack2/Attack2 Body 0.png").texture,
-                            frame_w,frame_h,4,5
-            ),
-            "idle_down":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Idle/Idle Body 180.png").texture,
-                            frame_w, frame_h, 4,5
-                        ),
-            "run_down": self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Run/Run Body 180.png").texture,
-                            frame_w, frame_h, 4,5
-                        ),
-            "attack_down":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Attack2/Attack2 Body 180.png").texture,
-                            frame_w,frame_h,4,5
-            ),
-            "idle_right":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Idle/Idle Body 090.png").texture,
-                            frame_w, frame_h, 4,5
-                        ),
-            "run_right": self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Run/Run Body 090.png").texture,
-                            frame_w, frame_h, 4,5
-                        ),
-            "attack_right":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Attack2/Attack2 Body 090.png").texture,
-                            frame_w,frame_h,4,5
-            ),
-            "idle_left":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Idle/Idle Body 270.png").texture,
-                            frame_w, frame_h, 4,5
-                        ),
-            "run_left": self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Run/Run Body 270.png").texture,
-                            frame_w, frame_h, 4,5
-                        ),
-            "attack_left":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/3/x256_Spritesheets/Attack2/Attack2 Body 270.png").texture,
-                            frame_w,frame_h,4,5
-            ),
-        },
-        "ranged":{
-            "death":self.load_sheet(CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Death1/Death1 Body 0.png").texture,
-                                    frame_w,frame_h,6,5),
-            "idle_up":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Idle/Idle Body 0.png").texture,
-                            frame_w, frame_h, 4,5
-                        ),
-            "run_up": self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Run/Run Body 0.png").texture,
-                            frame_w, frame_h, 4,5
-                        ),
-            "attack_up":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Attack3/Attack3 Body 0.png").texture,
-                            frame_w,frame_h,6,4
-            ),
-            "idle_down":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Idle/Idle Body 180.png").texture,
-                            frame_w, frame_h, 4,5
-                        ),
-            "run_down": self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Run/Run Body 180.png").texture,
-                            frame_w, frame_h, 4,5
-                        ),
-            "attack_down":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Attack3/Attack3 Body 180.png").texture,
-                            frame_w,frame_h,6,4
-            ),
-            "idle_right":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Idle/Idle Body 090.png").texture,
-                            frame_w, frame_h, 4,5
-                        ),
-            "run_right": self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Run/Run Body 090.png").texture,
-                            frame_w, frame_h, 4,5
-                        ),
-            "attack_right":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Attack3/Attack3 Body 090.png").texture,
-                            frame_w,frame_h,6,4
-            ),
-            "idle_left":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Idle/Idle Body 270.png").texture,
-                            frame_w, frame_h, 4,5
-                        ),
-            "run_left": self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Run/Run Body 270.png").texture,
-                            frame_w, frame_h, 4,5
-                        ),
-            "attack_left":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Attack3/Attack3 Body 270.png").texture,
-                            frame_w,frame_h,6,4
-            ),
-        },
         
-        "boss":{
-            "death":self.load_sheet(CoreImage("gameAsset/Characters/Enemy/boss2/death/up.png").texture,
-                                    frame_w,frame_h,16,1),
-            "idle_up":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/boss2/idle/up.png").texture,
-                            frame_w, frame_h, 20,1
-                        ),
-            "run_up": self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/boss2/run/up.png").texture,
-                            frame_w, frame_h, 16,1
-                        ),
-            "attack_up":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/boss2/attack/up.png").texture,
-                            frame_w,frame_h,20,1
-            ),
-            "idle_down":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/boss2/idle/up.png").texture,
-                            frame_w, frame_h, 20,1
-                        ),
-            "run_down": self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/boss2/run/down.png").texture,
-                            frame_w, frame_h, 16,1
-                        ),
-            "attack_down":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/boss2/attack/down.png").texture,
-                            frame_w,frame_h,20,1
-            ),
-            "idle_right":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/boss2/idle/up.png").texture,
-                            frame_w, frame_h, 20,1
-                        ),
-            "run_right": self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/boss2/run/left.png").texture,
-                            frame_w, frame_h, 16,1
-                        ),
-            "attack_right":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/boss2/attack/left.png").texture,
-                            frame_w,frame_h,16,1
-            ),
-            "idle_left":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/boss2/idle/up.png").texture,
-                            frame_w, frame_h, 20,1
-                        ),
-            "run_left": self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/boss2/run/right.png").texture,
-                            frame_w, frame_h, 16,1
-                        ),
-            "attack_left":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/boss2/attack/right.png").texture,
-                            frame_w,frame_h,16,1
-            ),
-        },
-        
-        "elite":{
-            "death":self.load_sheet(CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Death1/Death1 Body 0.png").texture,
-                                    frame_w,frame_h,6,5),
-            "idle_up":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Idle/Idle Body 0.png").texture,
-                            frame_w, frame_h, 4,5
-                        ),
-            "run_up": self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Run/Run Body 0.png").texture,
-                            frame_w, frame_h, 4,5
-                        ),
-            "attack_up":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Attack3/Attack3 Body 0.png").texture,
-                            frame_w,frame_h,6,4
-            ),
-            "idle_down":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Idle/Idle Body 180.png").texture,
-                            frame_w, frame_h, 4,5
-                        ),
-            "run_down": self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Run/Run Body 180.png").texture,
-                            frame_w, frame_h, 4,5
-                        ),
-            "attack_down":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Attack3/Attack3 Body 180.png").texture,
-                            frame_w,frame_h,6,4
-            ),
-            "idle_right":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Idle/Idle Body 090.png").texture,
-                            frame_w, frame_h, 4,5
-                        ),
-            "run_right": self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Run/Run Body 090.png").texture,
-                            frame_w, frame_h, 4,5
-                        ),
-            "attack_right":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Attack3/Attack3 Body 090.png").texture,
-                            frame_w,frame_h,6,4
-            ),
-            "idle_left":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Idle/Idle Body 270.png").texture,
-                            frame_w, frame_h, 4,5
-                        ),
-            "run_left": self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Run/Run Body 270.png").texture,
-                            frame_w, frame_h, 4,5
-                        ),
-            "attack_left":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/4/x256_Spritesheets/Attack3/Attack3 Body 270.png").texture,
-                            frame_w,frame_h,6,4
-            ),
-        },
-        "poisoner":{
-            "death":self.load_sheet(CoreImage("gameAsset/Characters/Enemy/5/idle/s.png").texture,
-                                    frame_w,frame_h,21,1),
-            "idle_up":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/5/idle/n.png").texture,
-                            frame_w,frame_h, 19,1
-                        ),
-            "run_up": self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/5/walk/n.png").texture,
-                            frame_w, frame_h, 24,1
-                        ),
-            "attack_up":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/5/attack/n.png").texture,
-                            frame_w,frame_h,44,1
-            ),
-            "idle_down":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/5/idle/s.png").texture,
-                            frame_w, frame_h, 21,1
-                        ),
-            "run_down": self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/5/walk/s.png").texture,
-                            frame_w, frame_h, 26,1
-                        ),
-            "attack_down":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/5/attack/s.png").texture,
-                            frame_w,frame_h,6,6
-            ),
-            "idle_right":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/5/idle/e.png").texture,
-                            frame_w, frame_h, 19,1
-                        ),
-            "run_right": self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/5/walk/e.png").texture,
-                            frame_w, frame_h, 25,1
-                        ),
-            "attack_right":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/5/attack/e.png").texture,
-                            frame_w,frame_h,44,1
-            ),
-            "idle_left":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/5/idle/w.png").texture,
-                            frame_w, frame_h, 21,1
-                        ),
-            "run_left": self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/5/walk/w.png").texture,
-                            frame_w, frame_h, 26,1
-                        ),
-            "attack_left":self.load_sheet(
-                            CoreImage("gameAsset/Characters/Enemy/5/attack/w.png").texture,
-                            frame_w,frame_h,6,6
-            ),
-        },
-
-           }
         self.currentFrames=self.animations[self.role][self.state]
         self.texture=self.currentFrames[0]
         Clock.schedule_interval(self.animate,0.07)
@@ -3214,35 +3233,36 @@ class Ground(Widget):
 class UpgradePanel(RelativeLayout):
     pass
 class Sound():
-    boss=[SoundLoader.load("gameAsset/dialouge/genda.mp3"),SoundLoader.load("gameAsset/dialouge/gym.mp3")]
-    enemy_clear=[SoundLoader.load("gameAsset/dialouge/ekdum.mp3"),SoundLoader.load("gameAsset/dialouge/i_can.mp3"),SoundLoader.load("gameAsset/dialouge/who_am.mp3"),SoundLoader.load("gameAsset/dialouge/game_to.mp3")]
-    game_over=SoundLoader.load("gameAsset/game_menu/game_over.mp3")
-    game_music=SoundLoader.load("gameAsset/game_menu/game_music.mp3")
-    game_music.volume=0.4
-    menu_music=SoundLoader.load("gameAsset/game_menu/menu_music.mp3")
-    collectable=SoundLoader.load("gameAsset/sound/collect.mp3")
-    button_click2=SoundLoader.load("gameAsset/sound/button3.mp3")
-    button_click=SoundLoader.load("gameAsset/sound/button2.mp3")
-    button_click.volume=0.5
-    levelup=SoundLoader.load("gameAsset/sound/levelup.mp3")
-    enemy_hit=SoundLoader.load("gameAsset/sound/hurtPlayer.mp3")
-    run=SoundLoader.load("gameAsset/sound/run.mp3")
-    run.voulme=0.01
-    gun_sound={"assualt":{"shoot":SoundLoader.load("gameAsset/sound/rifle.mp3"),"reload":SoundLoader.load("gameAsset/sound/rifle_reload.mp3")},
-                "shotgun":{"shoot":SoundLoader.load("gameAsset/sound/shotgun.mp3"),"reload":SoundLoader.load("gameAsset/sound/shotgun_reload.mp3")},
-                "machine":{"shoot":SoundLoader.load("gameAsset/sound/machine3.mp3"),"reload":SoundLoader.load("gameAsset/sound/rifle_reload.mp3")},
-                "sniper":{"shoot":SoundLoader.load("gameAsset/sound/sniper.mp3"),"reload":SoundLoader.load("gameAsset/sound/rifle_reload.mp3")}
-            }
-    gun_sound["assualt"]["shoot"].volume=0.15
-    gun_sound["assualt"]["reload"].volume=0.3
-
-    gun_sound["shotgun"]["shoot"].volume=0.15
-    gun_sound["shotgun"]["reload"].volume=0.3
-    gun_sound["sniper"]["shoot"].volume=0.15
-    gun_sound["sniper"]["reload"].volume=0.3
-
-    gun_sound["machine"]["shoot"].volume=0.2
-    gun_sound["machine"]["reload"].volume=0.3
+    def __init__(self):
+        self.boss=[SoundLoader.load("gameAsset/dialouge/genda.mp3"),SoundLoader.load("gameAsset/dialouge/gym.mp3")]
+        self.enemy_clear=[SoundLoader.load("gameAsset/dialouge/ekdum.mp3"),SoundLoader.load("gameAsset/dialouge/i_can.mp3"),SoundLoader.load("gameAsset/dialouge/who_am.mp3"),SoundLoader.load("gameAsset/dialouge/game_to.mp3")]
+        self.game_over=SoundLoader.load("gameAsset/game_menu/game_over.mp3")
+        self.game_music=SoundLoader.load("gameAsset/game_menu/game_music.mp3")
+        self.game_music.volume=0.4
+        self.menu_music=SoundLoader.load("gameAsset/game_menu/menu_music.mp3")
+        self.collectable=SoundLoader.load("gameAsset/sound/collect.mp3")
+        self.button_click2=SoundLoader.load("gameAsset/sound/button3.mp3")
+        self.button_click=SoundLoader.load("gameAsset/sound/button2.mp3")
+        self.button_click.volume=0.5
+        self.levelup=SoundLoader.load("gameAsset/sound/levelup.mp3")
+        self.enemy_hit=SoundLoader.load("gameAsset/sound/hurtPlayer.mp3")
+        self.run=SoundLoader.load("gameAsset/sound/run.mp3")
+        self.run.voulme=0.01
+        self.gun_sound={"assualt":{"shoot":SoundLoader.load("gameAsset/sound/rifle.mp3"),"reload":SoundLoader.load("gameAsset/sound/rifle_reload.mp3")},
+                    "shotgun":{"shoot":SoundLoader.load("gameAsset/sound/shotgun.mp3"),"reload":SoundLoader.load("gameAsset/sound/shotgun_reload.mp3")},
+                    "machine":{"shoot":SoundLoader.load("gameAsset/sound/machine3.mp3"),"reload":SoundLoader.load("gameAsset/sound/rifle_reload.mp3")},
+                    "sniper":{"shoot":SoundLoader.load("gameAsset/sound/sniper.mp3"),"reload":SoundLoader.load("gameAsset/sound/rifle_reload.mp3")}
+                }
+        self.gun_sound["assualt"]["shoot"].volume=0.15
+        self.gun_sound["assualt"]["reload"].volume=0.3
+    
+        self.gun_sound["shotgun"]["shoot"].volume=0.15
+        self.gun_sound["shotgun"]["reload"].volume=0.3
+        self.gun_sound["sniper"]["shoot"].volume=0.15
+        self.gun_sound["sniper"]["reload"].volume=0.3
+    
+        self.gun_sound["machine"]["shoot"].volume=0.2
+        self.gun_sound["machine"]["reload"].volume=0.3
 
 
 
