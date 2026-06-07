@@ -82,7 +82,7 @@ class Game(FloatLayout):
         self.overlay_layer.size_hint = (None, None)
         self.overlay_layer.size = (0, 0)
         
-        self.gs=Sound()
+        self.gs= App.get_running_app().gs
         # self.gs.game_music.loop=True
         # if self.gs.game_music.state!="play":
         #     self.gs.game_music.play()
